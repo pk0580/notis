@@ -9,9 +9,7 @@ use DateTimeImmutable;
 final readonly class StatusHistory
 {
     /** @param list<array{status: string, at: string, reason?: string}> $items */
-    public function __construct(public array $items = [])
-    {
-    }
+    public function __construct(public array $items = []) {}
 
     public function withTransition(NotificationStatus $status, DateTimeImmutable $at, ?string $reason = null): self
     {

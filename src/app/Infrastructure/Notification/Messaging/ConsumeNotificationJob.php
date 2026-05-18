@@ -69,11 +69,12 @@ final readonly class ConsumeNotificationJob
 
         if ($nextRetry >= $this->maxAttempts) {
             $this->moveToDlq($message, $notificationId, $xTraceId, "Max retries exceeded: {$errorMessage}");
+
             return;
         }
 
         $delayMs = $this->retryBackoffMs[$xRetries] ?? end($this->retryBackoffMs);
-        
+
         $channel = $message->getChannel();
         $priority = $message->getRoutingKey();
 
@@ -98,7 +99,7 @@ final readonly class ConsumeNotificationJob
         );
 
         $message->ack();
-        
+
         Log::info("Notification {$notificationId->value} scheduled for retry #{$nextRetry} in {$delayMs}ms");
     }
 
@@ -109,7 +110,7 @@ final readonly class ConsumeNotificationJob
         string $reason
     ): void {
         $channel = $message->getChannel();
-        
+
         $dlqHeaders = [
             'x-trace-id' => $xTraceId,
             'x-death-reason' => $reason,
@@ -128,7 +129,7 @@ final readonly class ConsumeNotificationJob
         );
 
         $message->ack();
-        
+
         Log::warning("Notification {$notificationId->value} moved to DLQ: {$reason}");
 
         // Also mark as dropped in DB if not already done

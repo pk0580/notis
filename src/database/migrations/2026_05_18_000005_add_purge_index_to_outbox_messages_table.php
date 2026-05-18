@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('outbox_messages', function (Blueprint $table) {
             // Удаляем старый индекс, созданный Laravel по умолчанию
             $table->dropIndex('outbox_messages_published_at_index');
-            
+
             // Создаем индекс с именем и условием из плана (§7)
             // Используем raw для гарантированного WHERE в PostgreSQL
         });

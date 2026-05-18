@@ -12,8 +12,7 @@ final readonly class RedisIdempotencyStore implements IdempotencyStore
     public function __construct(
         private RedisFactory $redis,
         private string $connection = 'default',
-    ) {
-    }
+    ) {}
 
     public function get(string $key): ?array
     {

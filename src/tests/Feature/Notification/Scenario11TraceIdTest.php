@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Notification;
 
+use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
 use App\Infrastructure\Notification\Messaging\OutboxPublisher;
 use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
-use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -26,7 +26,7 @@ class Scenario11TraceIdTest extends RabbitMqIntegrationTestCase
 
     public function test_trace_id_propagation(): void
     {
-        $traceId = 'trace-' . Str::uuid()->toString();
+        $traceId = 'trace-'.Str::uuid()->toString();
 
         // 1. API call with Trace-ID
         $this->withHeaders([
@@ -49,7 +49,7 @@ class Scenario11TraceIdTest extends RabbitMqIntegrationTestCase
         $channel = $this->rabbitmqConnection->channel();
         $msg = $channel->basic_get(RabbitMqTopology::QUEUE_TRANSACTIONAL);
         $this->assertNotNull($msg);
-        
+
         $headers = $msg->get('application_headers')->getNativeData();
         $this->assertEquals($traceId, $headers['x-trace-id']);
 
@@ -58,8 +58,8 @@ class Scenario11TraceIdTest extends RabbitMqIntegrationTestCase
         // but we can verify ConsumeNotificationJob doesn't crash and reads it.
         /** @var ConsumeNotificationJob $consumer */
         $consumer = app(ConsumeNotificationJob::class);
-        
-        // We expect it to try to call Gateway, which we didn't mock here, 
+
+        // We expect it to try to call Gateway, which we didn't mock here,
         // so it might fail, but that's fine for trace propagation check.
         try {
             $consumer($msg);

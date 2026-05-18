@@ -12,7 +12,7 @@ use App\Domain\Notification\ValueObject\Recipient;
 final readonly class DispatchNotificationsData
 {
     /**
-     * @param Recipient[] $recipients
+     * @param  Recipient[]  $recipients
      */
     public function __construct(
         public Channel $channel,

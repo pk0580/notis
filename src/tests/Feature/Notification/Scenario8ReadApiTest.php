@@ -6,6 +6,7 @@ namespace Tests\Feature\Notification;
 
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class Scenario8ReadApiTest extends TestCase
@@ -16,7 +17,7 @@ class Scenario8ReadApiTest extends TestCase
     {
         $recipient = '+79991112233';
         NotificationModel::create([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'recipient' => $recipient,
             'channel' => 'sms',
             'priority' => 'transactional',
@@ -30,16 +31,16 @@ class Scenario8ReadApiTest extends TestCase
             'version' => 3,
         ]);
 
-        $response = $this->getJson('/api/v1/notifications?recipient=' . urlencode($recipient));
+        $response = $this->getJson('/api/v1/notifications?recipient='.urlencode($recipient));
 
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
-        
+
         $item = $response->json('data.0');
         $this->assertEquals('delivered', $item['status']);
         $this->assertEquals('+7***2233', $item['recipient_masked']);
         $this->assertArrayNotHasKey('recipient', $item);
-        
+
         $this->assertCount(3, $item['status_history']);
         $this->assertEquals('queued', $item['status_history'][0]['status']);
     }

@@ -9,9 +9,7 @@ use App\Domain\Notification\ValueObject\ProviderMessageId;
 
 final readonly class SendResult
 {
-    public function __construct(public ProviderMessageId $messageId)
-    {
-    }
+    public function __construct(public ProviderMessageId $messageId) {}
 }
 
 interface NotificationGateway

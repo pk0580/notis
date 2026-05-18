@@ -9,6 +9,7 @@ use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Integration\RabbitMqIntegrationTestCase;
 
 class Scenario12OutboxRecoveryTest extends RabbitMqIntegrationTestCase
@@ -18,7 +19,7 @@ class Scenario12OutboxRecoveryTest extends RabbitMqIntegrationTestCase
     public function test_outbox_recovery(): void
     {
         // 1. Manually insert message into outbox as 'not published'
-        $notificationId = \Illuminate\Support\Str::uuid()->toString();
+        $notificationId = Str::uuid()->toString();
         NotificationModel::create([
             'id' => $notificationId,
             'recipient' => '+79990001122',
@@ -30,7 +31,7 @@ class Scenario12OutboxRecoveryTest extends RabbitMqIntegrationTestCase
         ]);
 
         DB::table('outbox_messages')->insert([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'notification_id' => $notificationId,
             'priority' => 'transactional',
             'created_at' => now()->subMinutes(10),

@@ -8,7 +8,5 @@ use App\Domain\Notification\ValueObject\NotificationId;
 
 final readonly class NotificationDelivered
 {
-    public function __construct(public NotificationId $notificationId)
-    {
-    }
+    public function __construct(public NotificationId $notificationId) {}
 }

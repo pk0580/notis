@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Integration\Infrastructure\Notification;
 
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationAction;
-use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationData;
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Gateway\NotificationGateway;
 use App\Domain\Notification\Gateway\SendResult;
@@ -26,18 +25,20 @@ class ConsumeNotificationJobTest extends TestCase
     use RefreshDatabase;
 
     private ConsumeNotificationJob $job;
+
     private $gatewayMock;
+
     private NotificationRepository $notificationRepo;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->gatewayMock = Mockery::mock(NotificationGateway::class);
         $this->app->instance(NotificationGateway::class, $this->gatewayMock);
-        
+
         $this->notificationRepo = app(NotificationRepository::class);
-        
+
         $this->job = new ConsumeNotificationJob(
             app(DeliverNotificationAction::class),
             $this->notificationRepo,

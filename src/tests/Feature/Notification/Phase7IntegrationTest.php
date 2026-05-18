@@ -10,13 +10,11 @@ use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
-use App\Domain\Notification\ValueObject\NotificationId;
 use App\Domain\Notification\ValueObject\Priority;
+use App\Domain\Notification\ValueObject\ProviderMessageId;
 use App\Domain\Notification\ValueObject\Recipient;
 use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
@@ -44,7 +42,7 @@ class Phase7IntegrationTest extends TestCase
         // 2. Выполняем DeliverNotificationAction
         /** @var DeliverNotificationAction $action */
         $action = app(DeliverNotificationAction::class);
-        
+
         // Фейкаем очередь, чтобы проверить диспатч
         Queue::fake();
 
@@ -61,7 +59,7 @@ class Phase7IntegrationTest extends TestCase
 
         // 5. Проверяем диспатч SimulateDeliveryAckJob на очереди
         Queue::assertPushed(SimulateDeliveryAckJob::class);
-        
+
         // В Laravel Queue::fake() перехватывает все, поэтому на connection 'database' мы не увидим записи в таблице jobs.
         // Но мы проверили сам факт диспатча.
     }
@@ -98,7 +96,7 @@ class Phase7IntegrationTest extends TestCase
             Priority::Transactional,
             MessageBody::for(Channel::Sms, 'Hello')
         );
-        $notification->markAsSent(new \App\Domain\Notification\ValueObject\ProviderMessageId('msg_123'));
+        $notification->markAsSent(new ProviderMessageId('msg_123'));
         $repository->save($notification);
 
         $job = new SimulateDeliveryAckJob($notification->id->value);

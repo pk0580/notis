@@ -19,8 +19,7 @@ final readonly class DispatchNotificationsController
 {
     public function __construct(
         private DispatchNotificationsAction $action
-    ) {
-    }
+    ) {}
 
     public function __invoke(DispatchNotificationsRequest $request): JsonResponse
     {

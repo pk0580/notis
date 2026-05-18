@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature\Notification;
 
 use App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryAction;
+use App\Domain\Notification\Repository\NotificationRepository;
 use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
 
@@ -18,10 +20,10 @@ class Scenario10DatabaseQueueRetryTest extends TestCase
     public function test_simulate_delivery_ack_job_retries_on_failure(): void
     {
         // 1. Prepare a notification
-        $notificationId = \Illuminate\Support\Str::uuid()->toString();
-        
+        $notificationId = Str::uuid()->toString();
+
         // 2. Mock Repository to fail
-        $repoMock = Mockery::mock(\App\Domain\Notification\Repository\NotificationRepository::class);
+        $repoMock = Mockery::mock(NotificationRepository::class);
         $repoMock->shouldReceive('findById')->once()->andThrow(new \RuntimeException('Transient DB error'));
 
         // 3. Dispatch job to database queue
@@ -36,9 +38,9 @@ class Scenario10DatabaseQueueRetryTest extends TestCase
         // 4. Try to run the job
         $jobRow = DB::table('jobs')->first();
         $jobData = json_decode($jobRow->payload, true);
-        
+
         $job = unserialize($jobData['data']['command']);
-        
+
         $action = new AcknowledgeDeliveryAction($repoMock);
 
         try {

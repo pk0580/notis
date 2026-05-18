@@ -8,6 +8,7 @@ use App\Application\Notification\UseCase\DeliverNotification\DeliverNotification
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationData;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationFailedException;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationResult;
+use App\Application\Notification\UseCase\DeliverNotification\PermanentDeliverNotificationFailedException;
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Exception\GatewayRejectedException;
 use App\Domain\Notification\Exception\GatewayUnavailableException;
@@ -28,20 +29,42 @@ use Tests\TestCase;
 class DeliverNotificationActionTest extends TestCase
 {
     private NotificationRepository $notificationRepository;
+
     private NotificationGateway $gateway;
+
     private Dispatcher $bus;
+
     private DeliverNotificationAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->notificationRepository = new class implements NotificationRepository {
+        $this->notificationRepository = new class implements NotificationRepository
+        {
             public array $notifications = [];
-            public function save(Notification $notification): void { $this->notifications[$notification->id->value] = $notification; }
-            public function saveMany(array $notifications): void { foreach ($notifications as $n) { $this->save($n); } }
-            public function findById(NotificationId $id): ?Notification { return $this->notifications[$id->value] ?? null; }
-            public function findByRecipient(string $recipient, int $limit): array { return []; }
+
+            public function save(Notification $notification): void
+            {
+                $this->notifications[$notification->id->value] = $notification;
+            }
+
+            public function saveMany(array $notifications): void
+            {
+                foreach ($notifications as $n) {
+                    $this->save($n);
+                }
+            }
+
+            public function findById(NotificationId $id): ?Notification
+            {
+                return $this->notifications[$id->value] ?? null;
+            }
+
+            public function findByRecipient(string $recipient, int $limit): array
+            {
+                return [];
+            }
         };
 
         $this->gateway = Mockery::mock(NotificationGateway::class);
@@ -148,7 +171,7 @@ class DeliverNotificationActionTest extends TestCase
         try {
             $this->action->handle($data);
             $this->fail('Should have thrown PermanentDeliverNotificationFailedException');
-        } catch (\App\Application\Notification\UseCase\DeliverNotification\PermanentDeliverNotificationFailedException $e) {
+        } catch (PermanentDeliverNotificationFailedException $e) {
             $this->assertEquals('Invalid content', $e->getMessage());
         }
 

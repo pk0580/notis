@@ -36,13 +36,13 @@ final readonly class Recipient
     private function validate(string $value, Channel $channel): void
     {
         if ($channel === Channel::Sms) {
-            if (!preg_match('/^\+[1-9]\d{6,14}$/', $value)) {
+            if (! preg_match('/^\+[1-9]\d{6,14}$/', $value)) {
                 throw new InvalidRecipientException("Invalid SMS recipient format (E.164 required): $value");
             }
         }
 
         if ($channel === Channel::Email) {
-            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
                 throw new InvalidRecipientException("Invalid Email recipient format: $value");
             }
         }
@@ -51,11 +51,12 @@ final readonly class Recipient
     public function masked(): string
     {
         if ($this->channel === Channel::Sms) {
-            return substr($this->value, 0, 2) . '***' . substr($this->value, -4);
+            return substr($this->value, 0, 2).'***'.substr($this->value, -4);
         }
 
         [$user, $domain] = explode('@', $this->value);
-        return substr($user, 0, 1) . '***@' . $domain;
+
+        return substr($user, 0, 1).'***@'.$domain;
     }
 
     public function equals(self $other): bool

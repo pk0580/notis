@@ -20,18 +20,38 @@ use Mockery\Adapter\Phpunit\MockeryTestCase;
 class AcknowledgeDeliveryActionTest extends MockeryTestCase
 {
     private NotificationRepository $notificationRepository;
+
     private AcknowledgeDeliveryAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->notificationRepository = new class implements NotificationRepository {
+        $this->notificationRepository = new class implements NotificationRepository
+        {
             public array $notifications = [];
-            public function save(Notification $notification): void { $this->notifications[$notification->id->value] = $notification; }
-            public function saveMany(array $notifications): void { foreach ($notifications as $n) { $this->save($n); } }
-            public function findById(NotificationId $id): ?Notification { return $this->notifications[$id->value] ?? null; }
-            public function findByRecipient(string $recipient, int $limit): array { return []; }
+
+            public function save(Notification $notification): void
+            {
+                $this->notifications[$notification->id->value] = $notification;
+            }
+
+            public function saveMany(array $notifications): void
+            {
+                foreach ($notifications as $n) {
+                    $this->save($n);
+                }
+            }
+
+            public function findById(NotificationId $id): ?Notification
+            {
+                return $this->notifications[$id->value] ?? null;
+            }
+
+            public function findByRecipient(string $recipient, int $limit): array
+            {
+                return [];
+            }
         };
 
         $this->action = new AcknowledgeDeliveryAction($this->notificationRepository);

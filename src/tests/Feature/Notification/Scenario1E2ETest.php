@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Notification;
 
-use App\Infrastructure\Notification\Messaging\OutboxPublisher;
-use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
-use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
-use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
-use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
+use App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryAction;
 use App\Domain\Notification\Gateway\NotificationGateway;
 use App\Domain\Notification\Gateway\SendResult;
 use App\Domain\Notification\ValueObject\ProviderMessageId;
+use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
+use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
+use App\Infrastructure\Notification\Messaging\OutboxPublisher;
+use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
+use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Mockery;
@@ -27,7 +29,7 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
         parent::setUp();
         Redis::flushall();
         app(RabbitMqTopology::class)->declare();
-        
+
         // Force success in gateway for e2e test
         $gatewayMock = Mockery::mock(NotificationGateway::class);
         $gatewayMock->shouldReceive('send')->andReturn(new SendResult(new ProviderMessageId('e2e-msg-123')));
@@ -65,7 +67,7 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
         ]);
         // Check published_at is not null
         $this->assertNotNull(
-            \Illuminate\Support\Facades\DB::table('outbox_messages')
+            DB::table('outbox_messages')
                 ->where('notification_id', $notificationId)
                 ->value('published_at')
         );
@@ -74,7 +76,7 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
         $channel = $this->rabbitmqConnection->channel();
         $msg = $channel->basic_get(RabbitMqTopology::QUEUE_TRANSACTIONAL);
         $this->assertNotNull($msg, 'Message not found in RabbitMQ queue');
-        
+
         $payload = json_decode($msg->getBody(), true);
         $this->assertEquals($notificationId, $payload['notification_id']);
         $this->assertEquals(0, $msg->get('application_headers')->getNativeData()['x-retries'] ?? 0);
@@ -95,13 +97,13 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
         // 6. Simulate Delivery Ack
         $job = new SimulateDeliveryAckJob($notificationId);
         $job->handle(
-            app(\App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryAction::class)
+            app(AcknowledgeDeliveryAction::class)
         );
 
         // 7. Final status check
         $notification->refresh();
         $this->assertContains($notification->status, ['delivered', 'dropped']);
-        
+
         // Check history
         $history = $notification->status_history;
         $statuses = array_column($history, 'status');

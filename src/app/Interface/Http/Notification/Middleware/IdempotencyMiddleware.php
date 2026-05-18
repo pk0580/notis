@@ -14,14 +14,13 @@ final readonly class IdempotencyMiddleware
 {
     public function __construct(
         private IdempotencyStore $store
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $key = $request->header('Idempotency-Key');
 
-        if (!$key) {
+        if (! $key) {
             return new JsonResponse([
                 'error' => [
                     'code' => 'idempotency_key_required',

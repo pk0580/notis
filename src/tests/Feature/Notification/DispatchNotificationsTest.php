@@ -7,8 +7,8 @@ namespace Tests\Feature\Notification;
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Redis;
-use Tests\TestCase;
 use Illuminate\Support\Str;
+use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
@@ -56,7 +56,7 @@ it('returns cached response for same idempotency key', function () {
 
     $response1 = $this->withHeader('Idempotency-Key', $key)
         ->postJson('/api/v1/notifications', $payload);
-    
+
     $response1->assertStatus(202);
     $data1 = $response1->json();
 
@@ -65,14 +65,14 @@ it('returns cached response for same idempotency key', function () {
 
     $response2->assertStatus(202);
     expect($response2->json())->toBe($data1);
-    
+
     // Check that only one notification was created in DB
     expect(NotificationModel::count())->toBe(1);
 });
 
 it('rejects reused idempotency key with different payload', function () {
     $key = Str::uuid()->toString();
-    
+
     $this->withHeader('Idempotency-Key', $key)
         ->postJson('/api/v1/notifications', [
             'channel' => 'sms',

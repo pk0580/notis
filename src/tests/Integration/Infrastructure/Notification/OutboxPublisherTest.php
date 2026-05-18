@@ -15,28 +15,28 @@ use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\OutboxMessageModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
 
 class OutboxPublisherTest extends TestCase
 {
     use RefreshDatabase;
 
     private OutboxPublisher $publisher;
+
     private RabbitMqTopology $topology;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->publisher = app(OutboxPublisher::class);
         $this->topology = app(RabbitMqTopology::class);
-        
+
         // В тестах мы можем захотеть очистить RabbitMQ, но это опасно в общей среде.
         // Поэтому мы просто проверим, что вызов проходит без ошибок, если RabbitMQ доступен.
         try {
             $this->topology->declare();
         } catch (\Throwable $e) {
-            $this->markTestSkipped('RabbitMQ not available: ' . $e->getMessage());
+            $this->markTestSkipped('RabbitMQ not available: '.$e->getMessage());
         }
     }
 
@@ -44,7 +44,7 @@ class OutboxPublisherTest extends TestCase
     {
         /** @var NotificationRepository $notificationRepo */
         $notificationRepo = app(NotificationRepository::class);
-        
+
         $notification = Notification::create(
             new Recipient('+79991234567', Channel::Sms),
             Channel::Sms,
@@ -65,7 +65,7 @@ class OutboxPublisherTest extends TestCase
         $this->assertDatabaseHas('outbox_messages', [
             'notification_id' => $notification->id->value,
         ]);
-        
+
         $outbox = OutboxMessageModel::where('notification_id', $notification->id->value)->first();
         $this->assertNotNull($outbox->published_at);
     }

@@ -6,7 +6,6 @@ namespace App\Interface\Http\Notification\Request;
 
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
-use App\Domain\Notification\ValueObject\Priority;
 use App\Domain\Notification\ValueObject\Recipient;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -28,7 +27,7 @@ final class DispatchNotificationsRequest extends FormRequest
                 'required',
                 'array',
                 'min:1',
-                'max:' . config('notifications.batch_max', 5000),
+                'max:'.config('notifications.batch_max', 5000),
             ],
             'recipients.*' => ['required', 'string', 'min:1'],
         ];

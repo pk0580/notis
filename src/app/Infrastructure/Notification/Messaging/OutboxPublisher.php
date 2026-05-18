@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\DB;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
-use Throwable;
 
 final class OutboxPublisher
 {
@@ -21,7 +20,6 @@ final class OutboxPublisher
     ) {}
 
     /**
-     * @param int $batchSize
      * @return int Number of published messages
      */
     public function flush(int $batchSize = 100): int
@@ -37,7 +35,7 @@ final class OutboxPublisher
                     'o.id as outbox_id',
                     'o.notification_id',
                     'o.priority',
-                    'n.trace_id'
+                    'n.trace_id',
                 ])
                 ->get();
 

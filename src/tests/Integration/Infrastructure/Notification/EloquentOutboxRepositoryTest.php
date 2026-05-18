@@ -3,23 +3,21 @@
 declare(strict_types=1);
 
 use App\Application\Notification\Outbox\OutboxRepository;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use Illuminate\Support\Str;
-
-use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\Entity\Notification;
+use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
 use App\Domain\Notification\ValueObject\Priority;
 use App\Domain\Notification\ValueObject\Recipient;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
 it('round-trips an outbox message', function () {
     /** @var NotificationRepository $notificationRepo */
     $notificationRepo = app(NotificationRepository::class);
-    
+
     $notification = Notification::create(
         new Recipient('+79991234567', Channel::Sms),
         Channel::Sms,

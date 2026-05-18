@@ -40,7 +40,7 @@ abstract class RabbitMqIntegrationTestCase extends TestCase
     protected function purgeQueues(): void
     {
         $channel = $this->rabbitmqConnection->channel();
-        
+
         $queues = [
             RabbitMqTopology::QUEUE_TRANSACTIONAL,
             RabbitMqTopology::QUEUE_MARKETING,

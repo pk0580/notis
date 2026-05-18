@@ -6,6 +6,4 @@ namespace App\Application\Notification\UseCase\DeliverNotification;
 
 use RuntimeException;
 
-final class PermanentDeliverNotificationFailedException extends RuntimeException
-{
-}
+final class PermanentDeliverNotificationFailedException extends RuntimeException {}

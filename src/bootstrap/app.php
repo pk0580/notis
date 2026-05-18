@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Domain\Notification\Exception\InvalidMessageBodyException;
+use App\Domain\Notification\Exception\InvalidNotificationStatusTransitionException;
+use App\Domain\Notification\Exception\InvalidRecipientException;
+use App\Infrastructure\Notification\Http\Middleware\TraceIdMiddleware;
+use App\Infrastructure\Notification\Provider\NotificationServiceProvider;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
-        \App\Infrastructure\Notification\Provider\NotificationServiceProvider::class,
+        NotificationServiceProvider::class,
     ])
     ->withRouting(
         api: __DIR__.'/../routes/api.php',
@@ -17,11 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
-            \App\Infrastructure\Notification\Http\Middleware\TraceIdMiddleware::class,
+            TraceIdMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidRecipientException $e) {
+        $exceptions->render(function (InvalidRecipientException $e) {
             return response()->json([
                 'error' => [
                     'code' => 'invalid_recipient',
@@ -30,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidMessageBodyException $e) {
+        $exceptions->render(function (InvalidMessageBodyException $e) {
             return response()->json([
                 'error' => [
                     'code' => 'invalid_message_body',
@@ -39,7 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidNotificationStatusTransitionException $e) {
+        $exceptions->render(function (InvalidNotificationStatusTransitionException $e) {
             return response()->json([
                 'error' => [
                     'code' => 'invalid_status_transition',

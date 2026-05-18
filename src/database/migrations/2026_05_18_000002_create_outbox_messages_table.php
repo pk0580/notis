@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('last_error')->nullable();
 
             $table->foreign('notification_id')->references('id')->on('notifications')->onDelete('cascade');
-            
+
             $table->index('created_at')->whereNull('published_at');
             $table->index('published_at')->whereNotNull('published_at');
         });

@@ -24,9 +24,10 @@ final class OutboxPublishCommand extends Command
         // Declare topology first (idempotent)
         $topology->declare();
 
-        if (!$this->option('loop')) {
+        if (! $this->option('loop')) {
             $count = $publisher->flush((int) $this->option('batch'));
             $this->info("Published {$count} messages.");
+
             return self::SUCCESS;
         }
 
@@ -42,10 +43,10 @@ final class OutboxPublishCommand extends Command
             });
         }
 
-        while (!$this->shouldStop) {
+        while (! $this->shouldStop) {
             try {
                 $count = $publisher->flush((int) $this->option('batch'));
-                
+
                 if ($count === 0) {
                     usleep(500_000); // 500ms
                 } else {

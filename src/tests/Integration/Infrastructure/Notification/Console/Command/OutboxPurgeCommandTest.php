@@ -7,8 +7,8 @@ namespace Tests\Integration\Infrastructure\Notification\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Tests\TestCase;
 use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class OutboxPurgeCommandTest extends TestCase
 {

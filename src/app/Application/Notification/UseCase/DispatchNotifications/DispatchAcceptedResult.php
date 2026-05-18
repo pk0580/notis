@@ -9,7 +9,7 @@ use App\Domain\Notification\ValueObject\NotificationId;
 final readonly class DispatchAcceptedResult
 {
     /**
-     * @param NotificationId[] $notificationIds
+     * @param  NotificationId[]  $notificationIds
      */
     public function __construct(
         public int $accepted,

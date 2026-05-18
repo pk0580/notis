@@ -8,9 +8,7 @@ use App\Domain\Notification\Exception\InvalidMessageBodyException;
 
 final readonly class MessageBody
 {
-    public function __construct(public string $value)
-    {
-    }
+    public function __construct(public string $value) {}
 
     public static function for(Channel $channel, string $body): self
     {

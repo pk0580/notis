@@ -6,7 +6,5 @@ namespace App\Domain\Notification\ValueObject;
 
 final readonly class ProviderMessageId
 {
-    public function __construct(public string $value)
-    {
-    }
+    public function __construct(public string $value) {}
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Interface\Http\Notification\Request;
 
-use App\Domain\Notification\ValueObject\Recipient;
 use App\Domain\Notification\Exception\InvalidRecipientException;
+use App\Domain\Notification\ValueObject\Recipient;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -43,6 +43,7 @@ final class GetNotificationsByRecipientRequest extends FormRequest
     {
         /** @var string $recipient */
         $recipient = $this->query('recipient');
+
         return Recipient::fromAny($recipient);
     }
 }

@@ -11,6 +11,5 @@ final readonly class NotificationDropped
     public function __construct(
         public NotificationId $notificationId,
         public string $reason
-    ) {
-    }
+    ) {}
 }

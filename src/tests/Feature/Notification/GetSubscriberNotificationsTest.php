@@ -6,8 +6,8 @@ namespace Tests\Feature\Notification;
 
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Illuminate\Support\Str;
+use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
@@ -23,7 +23,7 @@ it('returns notifications for recipient', function () {
         'attempts' => 1,
     ]);
 
-    $response = $this->getJson('/api/v1/notifications?recipient=' . urlencode('+79991234567'));
+    $response = $this->getJson('/api/v1/notifications?recipient='.urlencode('+79991234567'));
 
     $response->assertOk()
         ->assertHeader('X-Trace-Id')
@@ -40,12 +40,12 @@ it('returns notifications for recipient', function () {
                     'status_history',
                     'created_at',
                     'updated_at',
-                ]
+                ],
             ],
-            'meta' => ['next_cursor']
+            'meta' => ['next_cursor'],
         ])
         ->assertJsonFragment([
-            'recipient_masked' => '+7***4567'
+            'recipient_masked' => '+7***4567',
         ]);
 });
 
@@ -63,7 +63,7 @@ it('masks email recipients', function () {
 
     $response->assertOk()
         ->assertJsonFragment([
-            'recipient_masked' => 'j***@example.com'
+            'recipient_masked' => 'j***@example.com',
         ]);
 });
 
@@ -81,7 +81,7 @@ it('paginates results', function () {
             'recipient' => 'test@example.com',
             'channel' => 'email',
             'priority' => 'low',
-            'body' => 'Test body ' . $i,
+            'body' => 'Test body '.$i,
             'status' => 'queued',
             'created_at' => now()->subMinutes($i),
         ]);
@@ -91,11 +91,11 @@ it('paginates results', function () {
 
     $response->assertOk()
         ->assertJsonCount(2, 'data');
-    
+
     $nextCursor = $response->json('meta.next_cursor');
     expect($nextCursor)->not->toBeNull();
 
-    $response2 = $this->getJson('/api/v1/notifications?recipient=test@example.com&per_page=2&cursor=' . $nextCursor);
+    $response2 = $this->getJson('/api/v1/notifications?recipient=test@example.com&per_page=2&cursor='.$nextCursor);
     $response2->assertOk()
         ->assertJsonCount(2, 'data');
 });

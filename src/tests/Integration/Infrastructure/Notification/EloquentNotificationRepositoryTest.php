@@ -42,7 +42,7 @@ it('finds notifications by recipient', function () {
     $repo = app(NotificationRepository::class);
 
     $recipient = new Recipient('+79991234567', Channel::Sms);
-    
+
     $n1 = Notification::create($recipient, Channel::Sms, Priority::Transactional, new MessageBody('Body 1'));
     $n2 = Notification::create($recipient, Channel::Sms, Priority::Transactional, new MessageBody('Body 2'));
     $n3 = Notification::create(new Recipient('+79990000000', Channel::Sms), Channel::Sms, Priority::Transactional, new MessageBody('Body 3'));

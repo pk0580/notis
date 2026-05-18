@@ -17,8 +17,6 @@ interface NotificationRepository
     public function findById(NotificationId $id): ?Notification;
 
     /**
-     * @param string $recipient
-     * @param int $limit
      * @return list<Notification>
      */
     public function findByRecipient(string $recipient, int $limit): array;

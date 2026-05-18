@@ -9,7 +9,6 @@ use App\Domain\Notification\Exception\GatewayRejectedException;
 use App\Domain\Notification\Exception\GatewayUnavailableException;
 use App\Domain\Notification\Gateway\NotificationGateway;
 use App\Domain\Notification\Gateway\SendResult;
-use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\ProviderMessageId;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
@@ -40,8 +39,8 @@ final readonly class StubSmsGateway implements NotificationGateway
         }
 
         // 80% - Success
-        $messageId = 'sms_' . Str::random(10);
-        
+        $messageId = 'sms_'.Str::random(10);
+
         Redis::hset(StubSmsGateway::REDIS_KEY, $notification->id->value, $messageId);
         Redis::expire(StubSmsGateway::REDIS_KEY, 86400); // 24h
 

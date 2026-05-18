@@ -7,7 +7,7 @@ namespace App\Application\Notification\Outbox;
 interface OutboxRepository
 {
     /**
-     * @param OutboxEntry[] $entries
+     * @param  OutboxEntry[]  $entries
      */
     public function appendMany(array $entries): void;
 

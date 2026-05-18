@@ -60,11 +60,11 @@ final class RabbitMqConsumeCommand extends Command
         $channel->basic_qos(null, 1, null);
         $channel->basic_consume($queue, '', false, false, false, false, $callback);
 
-        while ($channel->is_consuming() && !$this->shouldStop) {
+        while ($channel->is_consuming() && ! $this->shouldStop) {
             try {
                 $channel->wait(null, false, 10);
             } catch (Throwable $e) {
-                if (!$this->shouldStop) {
+                if (! $this->shouldStop) {
                     $this->error("Error waiting for message: {$e->getMessage()}");
                 }
             }

@@ -32,8 +32,7 @@ final class Notification
         public readonly ?DateTimeImmutable $createdAt = null,
         public readonly ?DateTimeImmutable $updatedAt = null,
         private int $version = 0,
-    ) {
-    }
+    ) {}
 
     public static function create(
         Recipient $recipient,
@@ -43,7 +42,7 @@ final class Notification
         ?string $traceId = null
     ): self {
         $status = NotificationStatus::Queued;
-        $at = new DateTimeImmutable();
+        $at = new DateTimeImmutable;
 
         return new self(
             id: NotificationId::generate(),
@@ -52,7 +51,7 @@ final class Notification
             priority: $priority,
             body: $body,
             status: $status,
-            history: (new StatusHistory())->withTransition($status, $at),
+            history: (new StatusHistory)->withTransition($status, $at),
             traceId: $traceId,
             createdAt: $at,
             updatedAt: $at,
@@ -103,7 +102,7 @@ final class Notification
 
         $this->status = NotificationStatus::Sent;
         $this->providerMessageId = $providerMessageId;
-        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable());
+        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable);
     }
 
     public function markAsDelivered(): void
@@ -115,20 +114,20 @@ final class Notification
         }
 
         $this->status = NotificationStatus::Delivered;
-        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable());
+        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable);
     }
 
     public function markAsDropped(string $reason): void
     {
         $allowed = [NotificationStatus::Queued, NotificationStatus::Sent];
-        if (!in_array($this->status, $allowed, true)) {
+        if (! in_array($this->status, $allowed, true)) {
             throw new InvalidNotificationStatusTransitionException(
                 "Cannot mark as dropped from status: {$this->status->value}"
             );
         }
 
         $this->status = NotificationStatus::Dropped;
-        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable(), $reason);
+        $this->history = $this->history->withTransition($this->status, new DateTimeImmutable, $reason);
     }
 
     public function recordFailedAttempt(string $error): void
@@ -161,6 +160,7 @@ final class Notification
     {
         return $this->lastError;
     }
+
     public function version(): int
     {
         return $this->version;

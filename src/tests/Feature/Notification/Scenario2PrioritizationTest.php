@@ -49,11 +49,11 @@ class Scenario2PrioritizationTest extends RabbitMqIntegrationTestCase
 
         // 4. Verify queues
         $channel = $this->rabbitmqConnection->channel();
-        
+
         $msgTransactional = $channel->basic_get(RabbitMqTopology::QUEUE_TRANSACTIONAL);
         $this->assertNotNull($msgTransactional, 'Transactional message not found in transactional queue');
         $payloadT = json_decode($msgTransactional->getBody(), true);
-        
+
         $msgMarketing = $channel->basic_get(RabbitMqTopology::QUEUE_MARKETING);
         $this->assertNotNull($msgMarketing, 'Marketing message not found in marketing queue');
         $payloadM = json_decode($msgMarketing->getBody(), true);

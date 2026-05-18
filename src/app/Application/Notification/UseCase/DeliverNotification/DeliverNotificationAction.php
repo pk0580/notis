@@ -48,14 +48,14 @@ final readonly class DeliverNotificationAction
             );
 
             return DeliverNotificationResult::Success;
-        } catch (GatewayUnavailableException | GatewayTimeoutException $e) {
+        } catch (GatewayUnavailableException|GatewayTimeoutException $e) {
             $notification->recordFailedAttempt($e->getMessage());
             $this->notifications->save($notification);
 
             throw new DeliverNotificationFailedException($e->getMessage(), (int) $e->getCode(), $e);
         } catch (GatewayRejectedException $e) {
             $notification->recordFailedAttempt($e->getMessage());
-            $notification->markAsDropped('provider_rejected: ' . $e->getMessage());
+            $notification->markAsDropped('provider_rejected: '.$e->getMessage());
             $this->notifications->save($notification);
 
             throw new PermanentDeliverNotificationFailedException($e->getMessage(), (int) $e->getCode(), $e);

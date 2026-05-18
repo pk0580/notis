@@ -16,8 +16,7 @@ final readonly class EloquentNotificationRepository implements NotificationRepos
 {
     public function __construct(
         private NotificationMapper $mapper
-    ) {
-    }
+    ) {}
 
     public function save(Notification $notification): void
     {
@@ -32,9 +31,10 @@ final readonly class EloquentNotificationRepository implements NotificationRepos
 
         if ($updated === 0) {
             // If it's a new notification, it won't be updated, so we try to create it
-            if ($version === 0 && !NotificationModel::query()->where('id', $notification->id->value)->exists()) {
+            if ($version === 0 && ! NotificationModel::query()->where('id', $notification->id->value)->exists()) {
                 NotificationModel::query()->create(array_merge($data, ['version' => 1]));
                 $notification->incrementVersion();
+
                 return;
             }
 

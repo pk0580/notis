@@ -23,29 +23,64 @@ use Mockery\Adapter\Phpunit\MockeryTestCase;
 class DispatchNotificationsActionTest extends MockeryTestCase
 {
     private NotificationRepository $notificationRepository;
+
     private OutboxRepository $outboxRepository;
+
     private DatabaseManager $databaseManager;
+
     private Dispatcher $dispatcher;
+
     private DispatchNotificationsAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->notificationRepository = new class implements NotificationRepository {
+        $this->notificationRepository = new class implements NotificationRepository
+        {
             public array $notifications = [];
-            public function save(Notification $notification): void { $this->notifications[$notification->id->value] = $notification; }
-            public function saveMany(array $notifications): void { foreach ($notifications as $n) { $this->save($n); } }
-            public function findById(NotificationId $id): ?Notification { return $this->notifications[$id->value] ?? null; }
-            public function findByRecipient(string $recipient, int $limit): array { return []; }
+
+            public function save(Notification $notification): void
+            {
+                $this->notifications[$notification->id->value] = $notification;
+            }
+
+            public function saveMany(array $notifications): void
+            {
+                foreach ($notifications as $n) {
+                    $this->save($n);
+                }
+            }
+
+            public function findById(NotificationId $id): ?Notification
+            {
+                return $this->notifications[$id->value] ?? null;
+            }
+
+            public function findByRecipient(string $recipient, int $limit): array
+            {
+                return [];
+            }
         };
 
-        $this->outboxRepository = new class implements OutboxRepository {
+        $this->outboxRepository = new class implements OutboxRepository
+        {
             public array $entries = [];
-            public function appendMany(array $entries): void { $this->entries = array_merge($this->entries, $entries); }
+
+            public function appendMany(array $entries): void
+            {
+                $this->entries = array_merge($this->entries, $entries);
+            }
+
             public function persist(string $notificationId, string $priority): void {}
-            public function findUnpublished(int $limit): array { return []; }
+
+            public function findUnpublished(int $limit): array
+            {
+                return [];
+            }
+
             public function markAsPublished(string $id): void {}
+
             public function markAsFailed(string $id, string $error): void {}
         };
 

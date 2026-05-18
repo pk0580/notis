@@ -6,6 +6,4 @@ namespace App\Domain\Notification\Exception;
 
 use DomainException;
 
-final class InvalidNotificationStatusTransitionException extends DomainException
-{
-}
+final class InvalidNotificationStatusTransitionException extends DomainException {}

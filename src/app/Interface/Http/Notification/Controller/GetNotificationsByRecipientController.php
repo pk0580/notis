@@ -14,8 +14,7 @@ final readonly class GetNotificationsByRecipientController
 {
     public function __construct(
         private GetNotificationsByRecipientHandler $handler
-    ) {
-    }
+    ) {}
 
     public function __invoke(GetNotificationsByRecipientRequest $request): JsonResponse
     {

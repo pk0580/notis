@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Notification\ValueObject;
 
-use Ramsey\Uuid\Uuid;
 use InvalidArgumentException;
+use Ramsey\Uuid\Uuid;
 
 final readonly class NotificationId
 {
     public function __construct(public string $value)
     {
-        if (!Uuid::isValid($value)) {
+        if (! Uuid::isValid($value)) {
             throw new InvalidArgumentException("Invalid NotificationId: $value");
         }
     }

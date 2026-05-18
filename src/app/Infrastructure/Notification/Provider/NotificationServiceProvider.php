@@ -7,16 +7,16 @@ namespace App\Infrastructure\Notification\Provider;
 use App\Application\Notification\Idempotency\IdempotencyStore;
 use App\Application\Notification\Outbox\OutboxRepository;
 use App\Application\Notification\ReadRepository\NotificationReadRepository;
-use App\Domain\Notification\Repository\NotificationRepository;
-use App\Infrastructure\Notification\Idempotency\RedisIdempotencyStore;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationAction;
 use App\Domain\Notification\Gateway\NotificationGateway;
-use App\Infrastructure\Notification\Gateway\CompositeNotificationGateway;
-use App\Infrastructure\Notification\Gateway\StubEmailGateway;
-use App\Infrastructure\Notification\Gateway\StubSmsGateway;
+use App\Domain\Notification\Repository\NotificationRepository;
 use App\Infrastructure\Notification\Console\Command\OutboxPublishCommand;
 use App\Infrastructure\Notification\Console\Command\OutboxPurgeCommand;
 use App\Infrastructure\Notification\Console\Command\RabbitMqConsumeCommand;
+use App\Infrastructure\Notification\Gateway\CompositeNotificationGateway;
+use App\Infrastructure\Notification\Gateway\StubEmailGateway;
+use App\Infrastructure\Notification\Gateway\StubSmsGateway;
+use App\Infrastructure\Notification\Idempotency\RedisIdempotencyStore;
 use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
 use App\Infrastructure\Notification\Messaging\OutboxPublisher;
 use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
@@ -37,13 +37,14 @@ final class NotificationServiceProvider extends ServiceProvider
 
         $this->app->singleton(NotificationGateway::class, function ($app) {
             return new CompositeNotificationGateway([
-                'sms' => new StubSmsGateway(),
-                'email' => new StubEmailGateway(),
+                'sms' => new StubSmsGateway,
+                'email' => new StubEmailGateway,
             ]);
         });
 
         $this->app->singleton(RabbitMqTopology::class, function ($app) {
             $config = config('queue.connections.rabbitmq.hosts.0');
+
             return new RabbitMqTopology(
                 $config['host'],
                 (int) $config['port'],
@@ -55,6 +56,7 @@ final class NotificationServiceProvider extends ServiceProvider
 
         $this->app->singleton(OutboxPublisher::class, function ($app) {
             $config = config('queue.connections.rabbitmq.hosts.0');
+
             return new OutboxPublisher(
                 $config['host'],
                 (int) $config['port'],

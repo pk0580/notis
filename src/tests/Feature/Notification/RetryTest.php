@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Notification;
 
-use App\Domain\Notification\Gateway\NotificationGateway;
-use App\Domain\Notification\ValueObject\NotificationId;
-use App\Domain\Notification\ValueObject\NotificationStatus;
-use App\Domain\Notification\ValueObject\ProviderMessageId;
-use App\Domain\Notification\Gateway\SendResult;
-use App\Domain\Notification\Exception\GatewayUnavailableException;
 use App\Domain\Notification\Exception\GatewayRejectedException;
+use App\Domain\Notification\Exception\GatewayUnavailableException;
+use App\Domain\Notification\Gateway\NotificationGateway;
 use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
 use App\Infrastructure\Notification\Messaging\RabbitMqTopology;
 use App\Infrastructure\Notification\Persistence\Eloquent\Models\NotificationModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Mockery;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -37,7 +34,7 @@ class RetryTest extends RabbitMqIntegrationTestCase
     public function test_scenario_4_transient_failure_retries(): void
     {
         $notification = NotificationModel::create([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'recipient' => '+79991234567',
             'channel' => 'sms',
             'priority' => 'transactional',
@@ -83,7 +80,7 @@ class RetryTest extends RabbitMqIntegrationTestCase
     public function test_scenario_5_max_retries_exhausted_to_dlq(): void
     {
         $notification = NotificationModel::create([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'recipient' => '+79991234567',
             'channel' => 'sms',
             'priority' => 'transactional',
@@ -127,7 +124,7 @@ class RetryTest extends RabbitMqIntegrationTestCase
     public function test_scenario_6_permanent_reject_to_dlq(): void
     {
         $notification = NotificationModel::create([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'recipient' => '+79991234567',
             'channel' => 'sms',
             'priority' => 'transactional',
@@ -168,7 +165,7 @@ class RetryTest extends RabbitMqIntegrationTestCase
     public function test_scenario_7_exactly_once_protection(): void
     {
         $notification = NotificationModel::create([
-            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'id' => Str::uuid()->toString(),
             'recipient' => '+79991234567',
             'channel' => 'sms',
             'priority' => 'transactional',

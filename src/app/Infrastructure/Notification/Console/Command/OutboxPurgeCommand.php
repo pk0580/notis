@@ -6,6 +6,7 @@ namespace App\Infrastructure\Notification\Console\Command;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class OutboxPurgeCommand extends Command
 {
@@ -27,13 +28,13 @@ final class OutboxPurgeCommand extends Command
                 ->where('published_at', '<', $date)
                 ->limit(5000)
                 ->delete();
-            
+
             $totalDeleted += $deleted;
             $this->info("Deleted {$deleted} messages...");
         } while ($deleted === 5000);
 
         if ($totalDeleted > 0) {
-            \Illuminate\Support\Facades\Log::info('outbox.purged', [
+            Log::info('outbox.purged', [
                 'count' => $totalDeleted,
                 'before' => $date->toDateTimeString(),
             ]);
