@@ -1,0 +1,6 @@
+.claude
+.junie
+.idea
+*.log
+.DS_Store
+Thumbs.db
