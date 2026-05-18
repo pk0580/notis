@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Notification\Persistence\Eloquent\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 final class OutboxMessageModel extends Model
 {
+    use HasUuids;
+
     protected $table = 'outbox_messages';
 
     public $incrementing = false;
