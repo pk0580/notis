@@ -15,8 +15,8 @@ final readonly class MessageBody
     public static function for(Channel $channel, string $body): self
     {
         $max = match ($channel) {
-            Channel::Sms => (int) config('notifications.body_max.sms', 1000),
-            Channel::Email => (int) config('notifications.body_max.email', 10000),
+            Channel::Sms => 1000,
+            Channel::Email => 10000,
         };
 
         if ($body === '' || mb_strlen($body) > $max) {

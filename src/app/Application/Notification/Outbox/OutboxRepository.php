@@ -6,6 +6,11 @@ namespace App\Application\Notification\Outbox;
 
 interface OutboxRepository
 {
+    /**
+     * @param OutboxEntry[] $entries
+     */
+    public function appendMany(array $entries): void;
+
     public function persist(string $notificationId, string $priority): void;
 
     /** @return list<array{id: string, notification_id: string, priority: string}> */
