@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Notification\Job;
 
-use App\Domain\Notification\Repository\NotificationRepository;
+use App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryAction;
+use App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryData;
 use App\Domain\Notification\ValueObject\NotificationId;
+use App\Domain\Notification\ValueObject\NotificationStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,27 +20,25 @@ final class SimulateDeliveryAckJob implements ShouldQueue
 
     public function __construct(
         private string $notificationId
-    ) {
-        // Используем стандартную очередь для имитации колбэков
-        $this->queue = 'default';
-    }
+    ) {}
 
-    public function handle(NotificationRepository $repository): void
+    public function handle(AcknowledgeDeliveryAction $action): void
     {
-        $notification = $repository->findById(new NotificationId($this->notificationId));
+        // 90% → Delivered, 10% → Dropped (§6.4)
+        $chance = random_int(1, 100);
 
-        if ($notification === null) {
-            return;
-        }
-
-        // Имитируем задержку провайдера (уже обеспечено очередью)
-        // С вероятностью 95% - доставлено, 5% - dropped (например, неверный номер)
-        if (random_int(1, 100) <= 95) {
-            $notification->markAsDelivered();
+        if ($chance <= 90) {
+            $finalStatus = NotificationStatus::Delivered;
+            $reason = null;
         } else {
-            $notification->markAsDropped('provider_feedback: delivery_failed');
+            $finalStatus = NotificationStatus::Dropped;
+            $reason = 'provider_rejected_late: delivery_failed';
         }
 
-        $repository->save($notification);
+        $action->handle(new AcknowledgeDeliveryData(
+            new NotificationId($this->notificationId),
+            $finalStatus,
+            $reason
+        ));
     }
 }

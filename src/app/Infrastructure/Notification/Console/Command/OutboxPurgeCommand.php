@@ -32,6 +32,13 @@ final class OutboxPurgeCommand extends Command
             $this->info("Deleted {$deleted} messages...");
         } while ($deleted === 5000);
 
+        if ($totalDeleted > 0) {
+            \Illuminate\Support\Facades\Log::info('outbox.purged', [
+                'count' => $totalDeleted,
+                'before' => $date->toDateTimeString(),
+            ]);
+        }
+
         $this->info("Total deleted: {$totalDeleted}");
 
         return self::SUCCESS;
