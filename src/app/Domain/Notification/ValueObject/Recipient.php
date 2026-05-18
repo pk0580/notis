@@ -20,6 +20,19 @@ final readonly class Recipient
         return new self($value, $channel);
     }
 
+    public static function fromAny(string $value): self
+    {
+        if (str_starts_with($value, '+')) {
+            return new self($value, Channel::Sms);
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return new self($value, Channel::Email);
+        }
+
+        throw new InvalidRecipientException("Invalid recipient format: $value");
+    }
+
     private function validate(string $value, Channel $channel): void
     {
         if ($channel === Channel::Sms) {
