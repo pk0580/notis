@@ -166,6 +166,12 @@ final class Notification
         return $this->version;
     }
 
+    /**
+     * Sync in-memory version after a successful persist.
+     * The repository increments `version` in the UPDATE clause; this keeps the
+     * aggregate's optimistic-lock counter consistent for subsequent saves
+     * within the same request.
+     */
     public function incrementVersion(): void
     {
         $this->version++;

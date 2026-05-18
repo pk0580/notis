@@ -9,6 +9,7 @@ use App\Application\Notification\Outbox\OutboxRepository;
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Event\NotificationQueued;
 use App\Domain\Notification\Repository\NotificationRepository;
+use App\Domain\Notification\ValueObject\NotificationId;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\DatabaseManager;
 
@@ -45,7 +46,7 @@ final readonly class DispatchNotificationsAction
                 $notificationIds[] = $notification->id;
             }
 
-            $this->notifications->saveMany($notifications);
+            $this->notifications->saveMany(...$notifications);
             $this->outbox->appendMany($outboxEntries);
 
             $this->db->afterCommit(function () use ($notificationIds) {

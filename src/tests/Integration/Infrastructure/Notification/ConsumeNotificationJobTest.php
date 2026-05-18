@@ -6,8 +6,8 @@ namespace Tests\Integration\Infrastructure\Notification;
 
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationAction;
 use App\Domain\Notification\Entity\Notification;
+use App\Domain\Notification\Gateway\GatewayResult;
 use App\Domain\Notification\Gateway\NotificationGateway;
-use App\Domain\Notification\Gateway\SendResult;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
@@ -65,7 +65,7 @@ class ConsumeNotificationJobTest extends TestCase
 
         $this->gatewayMock->shouldReceive('send')
             ->once()
-            ->andReturn(new SendResult(new ProviderMessageId('test_msg_id')));
+            ->andReturn(new GatewayResult(new ProviderMessageId('test_msg_id')));
 
         ($this->job)($message);
     }

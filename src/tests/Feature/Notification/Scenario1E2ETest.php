@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Notification;
 
 use App\Application\Notification\UseCase\AcknowledgeDelivery\AcknowledgeDeliveryAction;
+use App\Domain\Notification\Gateway\GatewayResult;
 use App\Domain\Notification\Gateway\NotificationGateway;
-use App\Domain\Notification\Gateway\SendResult;
 use App\Domain\Notification\ValueObject\ProviderMessageId;
 use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
 use App\Infrastructure\Notification\Messaging\ConsumeNotificationJob;
@@ -32,7 +32,8 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
 
         // Force success in gateway for e2e test
         $gatewayMock = Mockery::mock(NotificationGateway::class);
-        $gatewayMock->shouldReceive('send')->andReturn(new SendResult(new ProviderMessageId('e2e-msg-123')));
+        $gatewayMock->shouldReceive('supports')->andReturn(true);
+        $gatewayMock->shouldReceive('send')->andReturn(new GatewayResult(new ProviderMessageId('e2e-msg-123')));
         app()->instance(NotificationGateway::class, $gatewayMock);
     }
 

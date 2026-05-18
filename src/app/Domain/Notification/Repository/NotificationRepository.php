@@ -11,13 +11,7 @@ interface NotificationRepository
 {
     public function save(Notification $notification): void;
 
-    /** @param list<Notification> $notifications */
-    public function saveMany(array $notifications): void;
+    public function saveMany(Notification ...$notifications): void;
 
     public function findById(NotificationId $id): ?Notification;
-
-    /**
-     * @return list<Notification>
-     */
-    public function findByRecipient(string $recipient, int $limit): array;
 }

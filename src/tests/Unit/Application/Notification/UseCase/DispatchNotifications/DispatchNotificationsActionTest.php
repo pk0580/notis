@@ -45,7 +45,7 @@ class DispatchNotificationsActionTest extends MockeryTestCase
                 $this->notifications[$notification->id->value] = $notification;
             }
 
-            public function saveMany(array $notifications): void
+            public function saveMany(Notification ...$notifications): void
             {
                 foreach ($notifications as $n) {
                     $this->save($n);
@@ -55,11 +55,6 @@ class DispatchNotificationsActionTest extends MockeryTestCase
             public function findById(NotificationId $id): ?Notification
             {
                 return $this->notifications[$id->value] ?? null;
-            }
-
-            public function findByRecipient(string $recipient, int $limit): array
-            {
-                return [];
             }
         };
 

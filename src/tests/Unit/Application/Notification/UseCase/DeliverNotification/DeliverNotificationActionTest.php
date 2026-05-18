@@ -12,8 +12,8 @@ use App\Application\Notification\UseCase\DeliverNotification\PermanentDeliverNot
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Exception\GatewayRejectedException;
 use App\Domain\Notification\Exception\GatewayUnavailableException;
+use App\Domain\Notification\Gateway\GatewayResult;
 use App\Domain\Notification\Gateway\NotificationGateway;
-use App\Domain\Notification\Gateway\SendResult;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
@@ -49,7 +49,7 @@ class DeliverNotificationActionTest extends TestCase
                 $this->notifications[$notification->id->value] = $notification;
             }
 
-            public function saveMany(array $notifications): void
+            public function saveMany(Notification ...$notifications): void
             {
                 foreach ($notifications as $n) {
                     $this->save($n);
@@ -59,11 +59,6 @@ class DeliverNotificationActionTest extends TestCase
             public function findById(NotificationId $id): ?Notification
             {
                 return $this->notifications[$id->value] ?? null;
-            }
-
-            public function findByRecipient(string $recipient, int $limit): array
-            {
-                return [];
             }
         };
 
@@ -92,7 +87,7 @@ class DeliverNotificationActionTest extends TestCase
         $this->gateway->shouldReceive('send')
             ->once()
             ->with($notification)
-            ->andReturn(new SendResult(new ProviderMessageId('pid-123')));
+            ->andReturn(new GatewayResult(new ProviderMessageId('pid-123')));
 
         $this->bus->shouldReceive('dispatch')->once();
 

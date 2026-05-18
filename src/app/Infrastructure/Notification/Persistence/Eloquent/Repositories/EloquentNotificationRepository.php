@@ -44,7 +44,7 @@ final readonly class EloquentNotificationRepository implements NotificationRepos
         $notification->incrementVersion();
     }
 
-    public function saveMany(array $notifications): void
+    public function saveMany(Notification ...$notifications): void
     {
         DB::transaction(function () use ($notifications) {
             foreach ($notifications as $notification) {
@@ -59,16 +59,5 @@ final readonly class EloquentNotificationRepository implements NotificationRepos
         $model = NotificationModel::query()->find($id->value);
 
         return $model ? $this->mapper->toDomain($model) : null;
-    }
-
-    public function findByRecipient(string $recipient, int $limit): array
-    {
-        return NotificationModel::query()
-            ->where('recipient', $recipient)
-            ->latest()
-            ->limit($limit)
-            ->get()
-            ->map(fn (NotificationModel $model) => $this->mapper->toDomain($model))
-            ->all();
     }
 }

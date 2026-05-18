@@ -37,8 +37,8 @@ final class NotificationServiceProvider extends ServiceProvider
 
         $this->app->singleton(NotificationGateway::class, function ($app) {
             return new CompositeNotificationGateway([
-                'sms' => new StubSmsGateway,
-                'email' => new StubEmailGateway,
+                new StubSmsGateway,
+                new StubEmailGateway,
             ]);
         });
 

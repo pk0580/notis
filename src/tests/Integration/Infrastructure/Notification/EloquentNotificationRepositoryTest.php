@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Domain\Notification\Entity\Notification;
+use App\Domain\Notification\Exception\ConcurrencyException;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
 use App\Domain\Notification\ValueObject\MessageBody;
 use App\Domain\Notification\ValueObject\NotificationStatus;
 use App\Domain\Notification\ValueObject\Priority;
+use App\Domain\Notification\ValueObject\ProviderMessageId;
 use App\Domain\Notification\ValueObject\Recipient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,21 +39,46 @@ it('round-trips a notification', function () {
         ->and($loaded->traceId)->toBe('trace-123');
 });
 
-it('finds notifications by recipient', function () {
+it('persists multiple notifications via variadic saveMany', function () {
     /** @var NotificationRepository $repo */
     $repo = app(NotificationRepository::class);
 
-    $recipient = new Recipient('+79991234567', Channel::Sms);
+    $n1 = Notification::create(
+        new Recipient('+79991234567', Channel::Sms),
+        Channel::Sms,
+        Priority::Transactional,
+        new MessageBody('Body 1')
+    );
+    $n2 = Notification::create(
+        new Recipient('+79990000000', Channel::Sms),
+        Channel::Sms,
+        Priority::Transactional,
+        new MessageBody('Body 2')
+    );
 
-    $n1 = Notification::create($recipient, Channel::Sms, Priority::Transactional, new MessageBody('Body 1'));
-    $n2 = Notification::create($recipient, Channel::Sms, Priority::Transactional, new MessageBody('Body 2'));
-    $n3 = Notification::create(new Recipient('+79990000000', Channel::Sms), Channel::Sms, Priority::Transactional, new MessageBody('Body 3'));
+    $repo->saveMany($n1, $n2);
 
-    $repo->saveMany([$n1, $n2, $n3]);
+    expect($repo->findById($n1->id))->not->toBeNull()
+        ->and($repo->findById($n2->id))->not->toBeNull();
+});
 
-    $found = $repo->findByRecipient($recipient->value, 10);
+it('rejects stale writes with ConcurrencyException', function () {
+    /** @var NotificationRepository $repo */
+    $repo = app(NotificationRepository::class);
 
-    expect($found)->toHaveCount(2)
-        ->and($found[0]->body->value)->toBe('Body 2') // latest first
-        ->and($found[1]->body->value)->toBe('Body 1');
+    $notification = Notification::create(
+        new Recipient('+79991234567', Channel::Sms),
+        Channel::Sms,
+        Priority::Transactional,
+        new MessageBody('Test')
+    );
+    $repo->save($notification);
+
+    $stale = $repo->findById($notification->id);
+
+    $notification->markAsSent(new ProviderMessageId('pid-1'));
+    $repo->save($notification);
+
+    $stale->markAsSent(new ProviderMessageId('pid-2'));
+    expect(fn () => $repo->save($stale))->toThrow(ConcurrencyException::class);
 });
