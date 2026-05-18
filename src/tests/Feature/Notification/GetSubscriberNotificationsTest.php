@@ -26,6 +26,7 @@ it('returns notifications for recipient', function () {
     $response = $this->getJson('/api/v1/notifications?recipient=' . urlencode('+79991234567'));
 
     $response->assertOk()
+        ->assertHeader('X-Trace-Id')
         ->assertJsonStructure([
             'data' => [
                 '*' => [

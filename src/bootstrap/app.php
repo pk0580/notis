@@ -16,8 +16,35 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->api(prepend: [
+            \App\Infrastructure\Notification\Http\Middleware\TraceIdMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidRecipientException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_recipient',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
+        });
+
+        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidMessageBodyException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_message_body',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
+        });
+
+        $exceptions->render(function (\App\Domain\Notification\Exception\InvalidNotificationStatusTransitionException $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_status_transition',
+                    'message' => $e->getMessage(),
+                ],
+            ], 400);
+        });
     })->create();
