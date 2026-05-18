@@ -21,13 +21,15 @@ use App\Domain\Notification\ValueObject\NotificationStatus;
 use App\Domain\Notification\ValueObject\Priority;
 use App\Domain\Notification\ValueObject\ProviderMessageId;
 use App\Domain\Notification\ValueObject\Recipient;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryTestCase;
+use Tests\TestCase;
 
-class DeliverNotificationActionTest extends MockeryTestCase
+class DeliverNotificationActionTest extends TestCase
 {
     private NotificationRepository $notificationRepository;
     private NotificationGateway $gateway;
+    private Dispatcher $bus;
     private DeliverNotificationAction $action;
 
     protected function setUp(): void
@@ -43,10 +45,12 @@ class DeliverNotificationActionTest extends MockeryTestCase
         };
 
         $this->gateway = Mockery::mock(NotificationGateway::class);
+        $this->bus = Mockery::mock(Dispatcher::class);
 
         $this->action = new DeliverNotificationAction(
             $this->notificationRepository,
-            $this->gateway
+            $this->gateway,
+            $this->bus
         );
     }
 
@@ -66,6 +70,8 @@ class DeliverNotificationActionTest extends MockeryTestCase
             ->once()
             ->with($notification)
             ->andReturn(new SendResult(new ProviderMessageId('pid-123')));
+
+        $this->bus->shouldReceive('dispatch')->once();
 
         $result = $this->action->handle($data);
 
@@ -139,9 +145,13 @@ class DeliverNotificationActionTest extends MockeryTestCase
             ->once()
             ->andThrow(new GatewayRejectedException('Invalid content'));
 
-        $result = $this->action->handle($data);
+        try {
+            $this->action->handle($data);
+            $this->fail('Should have thrown PermanentDeliverNotificationFailedException');
+        } catch (\App\Application\Notification\UseCase\DeliverNotification\PermanentDeliverNotificationFailedException $e) {
+            $this->assertEquals('Invalid content', $e->getMessage());
+        }
 
-        $this->assertEquals(DeliverNotificationResult::Success, $result);
         $this->assertEquals(1, $notification->attempts());
         $this->assertEquals('Invalid content', $notification->lastError());
         $this->assertEquals(NotificationStatus::Dropped, $notification->status());

@@ -31,7 +31,7 @@ final class Notification
         private ?string $lastError = null,
         public readonly ?DateTimeImmutable $createdAt = null,
         public readonly ?DateTimeImmutable $updatedAt = null,
-        public readonly int $version = 0,
+        private int $version = 0,
     ) {
     }
 
@@ -160,5 +160,14 @@ final class Notification
     public function lastError(): ?string
     {
         return $this->lastError;
+    }
+    public function version(): int
+    {
+        return $this->version;
+    }
+
+    public function incrementVersion(): void
+    {
+        $this->version++;
     }
 }

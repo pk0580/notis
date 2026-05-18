@@ -51,7 +51,7 @@ final class NotificationMapper
             'last_error' => $notification->lastError(),
             'provider_message_id' => $notification->providerMessageId()?->value,
             'trace_id' => $notification->traceId,
-            'version' => $notification->version,
+            'version' => $notification->version(),
         ];
     }
 }

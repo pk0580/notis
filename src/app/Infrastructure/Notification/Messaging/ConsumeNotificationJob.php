@@ -7,6 +7,7 @@ namespace App\Infrastructure\Notification\Messaging;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationAction;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationData;
 use App\Application\Notification\UseCase\DeliverNotification\DeliverNotificationFailedException;
+use App\Application\Notification\UseCase\DeliverNotification\PermanentDeliverNotificationFailedException;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\NotificationId;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +48,8 @@ final readonly class ConsumeNotificationJob
             $message->ack();
         } catch (DeliverNotificationFailedException $e) {
             $this->handleRetry($message, $notificationId, $xRetries, $xTraceId, $e->getMessage());
+        } catch (PermanentDeliverNotificationFailedException $e) {
+            $this->moveToDlq($message, $notificationId, $xTraceId, "Permanent failure: {$e->getMessage()}");
         } catch (Throwable $e) {
             Log::error("Permanent failure for notification {$notificationId->value}: {$e->getMessage()}", [
                 'exception' => $e,

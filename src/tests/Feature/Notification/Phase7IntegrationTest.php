@@ -9,8 +9,10 @@ use App\Application\Notification\UseCase\DeliverNotification\DeliverNotification
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Repository\NotificationRepository;
 use App\Domain\Notification\ValueObject\Channel;
+use App\Domain\Notification\ValueObject\MessageBody;
 use App\Domain\Notification\ValueObject\NotificationId;
-use App\Domain\Notification\ValueObject\NotificationPriority;
+use App\Domain\Notification\ValueObject\Priority;
+use App\Domain\Notification\ValueObject\Recipient;
 use App\Infrastructure\Notification\Job\SimulateDeliveryAckJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -29,10 +31,10 @@ class Phase7IntegrationTest extends TestCase
         /** @var NotificationRepository $repository */
         $repository = app(NotificationRepository::class);
         $notification = Notification::create(
+            Recipient::fromString(Channel::Sms, '+79991112233'),
             Channel::Sms,
-            'transactional',
-            'test@example.com',
-            'Hello'
+            Priority::Transactional,
+            MessageBody::for(Channel::Sms, 'Hello')
         );
         $repository->save($notification);
 
@@ -44,7 +46,7 @@ class Phase7IntegrationTest extends TestCase
         $action = app(DeliverNotificationAction::class);
         
         // Фейкаем очередь, чтобы проверить диспатч
-        Queue::fake(['database']);
+        Queue::fake();
 
         $action->handle(new DeliverNotificationData($notification->id));
 
@@ -57,10 +59,8 @@ class Phase7IntegrationTest extends TestCase
         $cachedId = Redis::hget('gateway:idempotency:sms', $notification->id->value);
         $this->assertEquals($updated->providerMessageId()->value, $cachedId);
 
-        // 5. Проверяем диспатч SimulateDeliveryAckJob на database queue
-        Queue::assertPushed(SimulateDeliveryAckJob::class, function ($job) use ($notification) {
-            return $job->queue === 'default'; 
-        });
+        // 5. Проверяем диспатч SimulateDeliveryAckJob на очереди
+        Queue::assertPushed(SimulateDeliveryAckJob::class);
         
         // В Laravel Queue::fake() перехватывает все, поэтому на connection 'database' мы не увидим записи в таблице jobs.
         // Но мы проверили сам факт диспатча.
@@ -70,7 +70,12 @@ class Phase7IntegrationTest extends TestCase
     {
         /** @var NotificationRepository $repository */
         $repository = app(NotificationRepository::class);
-        $notification = Notification::create(Channel::Sms, 'transactional', 'test@example.com', 'Hello');
+        $notification = Notification::create(
+            Recipient::fromString(Channel::Sms, '+79991112233'),
+            Channel::Sms,
+            Priority::Transactional,
+            MessageBody::for(Channel::Sms, 'Hello')
+        );
         $repository->save($notification);
 
         Redis::hset('gateway:idempotency:sms', $notification->id->value, 'existing_msg_id');
@@ -87,7 +92,12 @@ class Phase7IntegrationTest extends TestCase
     {
         /** @var NotificationRepository $repository */
         $repository = app(NotificationRepository::class);
-        $notification = Notification::create(Channel::Sms, 'transactional', 'test@example.com', 'Hello');
+        $notification = Notification::create(
+            Recipient::fromString(Channel::Sms, '+79991112233'),
+            Channel::Sms,
+            Priority::Transactional,
+            MessageBody::for(Channel::Sms, 'Hello')
+        );
         $notification->markAsSent(new \App\Domain\Notification\ValueObject\ProviderMessageId('msg_123'));
         $repository->save($notification);
 

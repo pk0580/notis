@@ -12,7 +12,7 @@ final class RabbitMqTopology
 {
     public const EXCHANGE_DIRECT = 'notifications.direct';
     public const EXCHANGE_RETRY = 'notifications.retry';
-    public const EXCHANGE_DLQ = 'notifications.dlq.direct';
+    public const EXCHANGE_DLQ = 'notifications.dlq';
 
     public const QUEUE_TRANSACTIONAL = 'notifications.transactional';
     public const QUEUE_MARKETING = 'notifications.marketing';
@@ -45,7 +45,7 @@ final class RabbitMqTopology
         // 1. Exchanges
         $channel->exchange_declare(static::EXCHANGE_DIRECT, AMQPExchangeType::DIRECT, false, true, false);
         $channel->exchange_declare(static::EXCHANGE_RETRY, AMQPExchangeType::DIRECT, false, true, false);
-        $channel->exchange_declare(static::EXCHANGE_DLQ, AMQPExchangeType::DIRECT, false, true, false);
+        $channel->exchange_declare(static::EXCHANGE_DLQ, AMQPExchangeType::TOPIC, false, true, false);
 
         // 2. Main Queues with DLX pointing to Retry Exchange
         $channel->queue_declare(
