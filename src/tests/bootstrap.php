@@ -6,23 +6,43 @@ require __DIR__.'/../vendor/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
-| Per-worker parallel test isolation
+| Test environment bootstrap
 |--------------------------------------------------------------------------
 |
-| paratest sets the TEST_TOKEN env var per worker (1..N). For each worker we
-| (1) point Postgres at its own database `notifications_test_{TOKEN}`,
-| (2) bind Redis to its own logical DB index (TOKEN mod 16, since Redis
-|     ships with 16 numeric DBs out of the box),
-| (3) route RabbitMQ to its own vhost `testing_{TOKEN}` so queues and
-|     exchanges declared by one worker are invisible to the others.
+| Two responsibilities:
 |
-| Resources are created lazily on first worker boot — the PG database via
-| a direct PDO connection to the default `postgres` DB, and the vhost via
-| the RabbitMQ management HTTP API. Both calls are idempotent.
+| 1. Sync phpunit.xml `<env>` overrides into $_SERVER. PHPUnit only writes
+|    to $_ENV and putenv(), but Laravel's Env reads $_SERVER first — so
+|    container-level vars from compose's env_file silently win over the
+|    test values. We mirror $_ENV → $_SERVER for every test-relevant key.
 |
-| Serial runs (no TEST_TOKEN) keep the shared `notifications` / `testing`
-| / Redis DB 0 setup — unchanged behavior.
+| 2. Per-worker parallel isolation. paratest sets TEST_TOKEN per worker
+|    (1..N). For each worker we point Postgres at its own database
+|    `notifications_test_{TOKEN}`, bind Redis to its own logical DB index
+|    (TOKEN mod 16 — Redis ships with 16 numeric DBs), and route RabbitMQ
+|    to its own vhost `testing_{TOKEN}`. PG database and RabbitMQ vhost
+|    are created lazily and idempotently on first boot.
 */
+
+$testEnvKeys = [
+    'APP_ENV',
+    'BCRYPT_ROUNDS',
+    'CACHE_DRIVER',
+    'DB_CONNECTION',
+    'DB_DATABASE',
+    'MAIL_MAILER',
+    'PULSE_ENABLED',
+    'QUEUE_CONNECTION',
+    'RABBITMQ_VHOST',
+    'SESSION_DRIVER',
+    'TELESCOPE_ENABLED',
+];
+
+foreach ($testEnvKeys as $key) {
+    if (array_key_exists($key, $_ENV)) {
+        $_SERVER[$key] = $_ENV[$key];
+    }
+}
 
 $token = getenv('TEST_TOKEN');
 
