@@ -113,6 +113,7 @@ services:
     command: php artisan rabbitmq:consume notifications.transactional
     init: true
     deploy:
+      replicas: 4
       resources:
         limits:
           cpus: '0.50'
@@ -139,6 +140,7 @@ services:
     command: php artisan rabbitmq:consume notifications.marketing
     init: true
     deploy:
+      replicas: 2
       resources:
         limits:
           cpus: '0.25'
@@ -164,6 +166,8 @@ services:
       - ./src:/var/www/html
     command: php artisan outbox:publish --loop
     init: true
+    deploy:
+      replicas: 2
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -185,6 +189,8 @@ services:
       - ./src:/var/www/html
     command: php artisan queue:work database --queue=default --tries=3
     init: true
+    deploy:
+      replicas: 1
     depends_on:
       migrate:
         condition: service_completed_successfully

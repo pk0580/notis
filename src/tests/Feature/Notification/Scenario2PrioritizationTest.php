@@ -18,7 +18,7 @@ class Scenario2PrioritizationTest extends RabbitMqIntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Redis::flushall();
+        Redis::flushdb();
         app(RabbitMqTopology::class)->declare();
     }
 

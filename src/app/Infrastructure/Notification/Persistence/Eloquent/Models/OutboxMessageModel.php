@@ -25,13 +25,17 @@ final class OutboxMessageModel extends Model
         'priority',
         'created_at',
         'published_at',
+        'reserved_at',
         'attempts',
+        'available_at',
         'last_error',
     ];
 
     protected $casts = [
         'created_at' => 'immutable_datetime',
         'published_at' => 'immutable_datetime',
+        'reserved_at' => 'immutable_datetime',
+        'available_at' => 'immutable_datetime',
         'attempts' => 'integer',
     ];
 }

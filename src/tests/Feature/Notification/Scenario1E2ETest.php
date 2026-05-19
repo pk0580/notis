@@ -27,7 +27,7 @@ class Scenario1E2ETest extends RabbitMqIntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Redis::flushall();
+        Redis::flushdb();
         app(RabbitMqTopology::class)->declare();
 
         // Force success in gateway for e2e test

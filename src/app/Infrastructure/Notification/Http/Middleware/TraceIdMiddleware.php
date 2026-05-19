@@ -14,7 +14,7 @@ final class TraceIdMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $traceId = $request->header('X-Trace-Id') ?? (string) Str::uuid();
+        $traceId = $request->header('X-Trace-Id') ?? (string) Str::uuid7();
 
         $request->attributes->set('trace_id', $traceId);
 

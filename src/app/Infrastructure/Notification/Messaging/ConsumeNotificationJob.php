@@ -46,12 +46,14 @@ final readonly class ConsumeNotificationJob
         try {
             $this->deliverAction->handle(new DeliverNotificationData($notificationId));
             $message->ack();
+        } catch (PermanentDeliverNotificationFailedException $e) {
+            // §3.5: permanent gateway reject → status уже Dropped в Action, в DLQ НЕ шлём.
+            Log::warning("Notification {$notificationId->value} permanently rejected by provider: {$e->getMessage()}");
+            $message->ack();
         } catch (DeliverNotificationFailedException $e) {
             $this->handleRetry($message, $notificationId, $xRetries, $xTraceId, $e->getMessage());
-        } catch (PermanentDeliverNotificationFailedException $e) {
-            $this->moveToDlq($message, $notificationId, $xTraceId, "Permanent failure: {$e->getMessage()}");
         } catch (Throwable $e) {
-            Log::error("Permanent failure for notification {$notificationId->value}: {$e->getMessage()}", [
+            Log::error("Unexpected failure for notification {$notificationId->value}: {$e->getMessage()}", [
                 'exception' => $e,
             ]);
             $message->ack(); // Ack to remove from main queue, it's already marked as dropped or failed in Action

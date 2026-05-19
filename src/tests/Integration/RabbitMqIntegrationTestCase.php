@@ -50,7 +50,11 @@ abstract class RabbitMqIntegrationTestCase extends TestCase
         ];
 
         foreach ($queues as $queue) {
-            $channel->queue_purge($queue);
+            try {
+                $channel->queue_purge($queue);
+            } catch (\Exception) {
+                // Ignore if queue doesn't exist yet
+            }
         }
 
         $channel->close();

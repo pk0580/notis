@@ -19,7 +19,7 @@ final class DispatchAcceptedResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'accepted' => (bool) $this->resource->accepted,
+            'accepted' => $this->resource->accepted,
             'notification_ids' => array_map(
                 static fn ($id) => $id->value,
                 $this->resource->notificationIds

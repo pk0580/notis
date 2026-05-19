@@ -13,7 +13,7 @@ use Tests\TestCase;
 uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    Redis::flushall();
+    Redis::flushdb();
 });
 
 it('accepts notification dispatch request', function () {
@@ -33,7 +33,7 @@ it('accepts notification dispatch request', function () {
                 'notification_ids',
             ],
         ])
-        ->assertJsonPath('data.accepted', true)
+        ->assertJsonPath('data.accepted', 1)
         ->assertJsonCount(1, 'data.notification_ids');
 
     $this->assertDatabaseHas('notifications', [

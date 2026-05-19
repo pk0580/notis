@@ -9,7 +9,6 @@ use App\Application\Notification\Outbox\OutboxRepository;
 use App\Domain\Notification\Entity\Notification;
 use App\Domain\Notification\Event\NotificationQueued;
 use App\Domain\Notification\Repository\NotificationRepository;
-use App\Domain\Notification\ValueObject\NotificationId;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\DatabaseManager;
 
@@ -29,7 +28,6 @@ final readonly class DispatchNotificationsAction
             $notifications = [];
             /** @var OutboxEntry[] $outboxEntries */
             $outboxEntries = [];
-            /** @var NotificationId[] $notificationIds */
             $notificationIds = [];
 
             foreach ($data->recipients as $recipient) {
@@ -49,9 +47,10 @@ final readonly class DispatchNotificationsAction
             $this->notifications->saveMany(...$notifications);
             $this->outbox->appendMany($outboxEntries);
 
-            $this->db->afterCommit(function () use ($notificationIds) {
+            $priority = $data->priority;
+            $this->db->afterCommit(function () use ($notificationIds, $priority) {
                 foreach ($notificationIds as $id) {
-                    $this->events->dispatch(new NotificationQueued($id));
+                    $this->events->dispatch(new NotificationQueued($id, $priority));
                 }
             });
 

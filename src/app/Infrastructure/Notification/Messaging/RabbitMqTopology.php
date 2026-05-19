@@ -14,7 +14,7 @@ final class RabbitMqTopology
 
     public const EXCHANGE_RETRY = 'notifications.retry';
 
-    public const EXCHANGE_DLQ = 'notifications.dlq';
+    public const EXCHANGE_DLQ = 'notifications.dlq.direct';
 
     public const QUEUE_TRANSACTIONAL = 'notifications.transactional';
 
@@ -52,7 +52,7 @@ final class RabbitMqTopology
         // 1. Exchanges
         $channel->exchange_declare(self::EXCHANGE_DIRECT, AMQPExchangeType::DIRECT, false, true, false);
         $channel->exchange_declare(self::EXCHANGE_RETRY, AMQPExchangeType::DIRECT, false, true, false);
-        $channel->exchange_declare(self::EXCHANGE_DLQ, AMQPExchangeType::TOPIC, false, true, false);
+        $channel->exchange_declare(self::EXCHANGE_DLQ, AMQPExchangeType::DIRECT, false, true, false);
 
         // 2. Main Queues with DLX pointing to Retry Exchange
         $channel->queue_declare(
@@ -116,9 +116,13 @@ final class RabbitMqTopology
         $channel->queue_bind(self::QUEUE_TRANSACTIONAL_RETRY, self::EXCHANGE_RETRY, self::ROUTING_KEY_TRANSACTIONAL);
         $channel->queue_bind(self::QUEUE_MARKETING_RETRY, self::EXCHANGE_RETRY, self::ROUTING_KEY_MARKETING);
 
-        // 6. DLQ
+        // 6. DLQ — bound to the direct DLQ exchange with explicit routing keys
+        // (plan §8 / checklist line 1110: exchange name `notifications.dlq.direct`,
+        // type=direct; explicit bindings replace the wildcard that direct exchanges
+        // don't support).
         $channel->queue_declare(self::QUEUE_DLQ, false, true, false, false);
-        $channel->queue_bind(self::QUEUE_DLQ, self::EXCHANGE_DLQ, '#'); // Bind everything for DLQ direct
+        $channel->queue_bind(self::QUEUE_DLQ, self::EXCHANGE_DLQ, self::ROUTING_KEY_TRANSACTIONAL);
+        $channel->queue_bind(self::QUEUE_DLQ, self::EXCHANGE_DLQ, self::ROUTING_KEY_MARKETING);
 
         $channel->close();
         $connection->close();

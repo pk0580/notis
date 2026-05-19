@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('/notifications', DispatchNotificationsController::class)
-        ->middleware(IdempotencyMiddleware::class);
+        ->middleware([IdempotencyMiddleware::class, 'throttle:60,1']);
 
-    Route::get('/notifications', GetNotificationsByRecipientController::class);
+    Route::get('/notifications', GetNotificationsByRecipientController::class)
+        ->middleware('throttle:120,1');
 });
 
 Route::get('/docs', function () {
@@ -19,5 +20,7 @@ Route::get('/docs', function () {
 });
 
 Route::get('/docs/openapi.yaml', function () {
-    return response()->file(storage_path('api-docs/openapi.yaml'));
+    return response()->file(resource_path('api-docs/openapi.yaml'), [
+        'Content-Type' => 'application/yaml',
+    ]);
 });

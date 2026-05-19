@@ -66,17 +66,6 @@ class DispatchNotificationsActionTest extends MockeryTestCase
             {
                 $this->entries = array_merge($this->entries, $entries);
             }
-
-            public function persist(string $notificationId, string $priority): void {}
-
-            public function findUnpublished(int $limit): array
-            {
-                return [];
-            }
-
-            public function markAsPublished(string $id): void {}
-
-            public function markAsFailed(string $id, string $error): void {}
         };
 
         $this->databaseManager = Mockery::mock(DatabaseManager::class);

@@ -121,7 +121,7 @@ class RetryTest extends RabbitMqIntegrationTestCase
         $this->assertNotNull($dlqMsg);
     }
 
-    public function test_scenario_6_permanent_reject_to_dlq(): void
+    public function test_scenario_6_permanent_reject(): void
     {
         $notification = NotificationModel::create([
             'id' => Str::uuid()->toString(),
@@ -157,9 +157,9 @@ class RetryTest extends RabbitMqIntegrationTestCase
         $notification->refresh();
         $this->assertEquals('dropped', $notification->status);
 
-        // Verify message is in DLQ
+        // Permanent reject should NOT be in DLQ per PROJECT_PLAN.md §3.5 / §11 line 1100
         $dlqMsg = $channel->basic_get(RabbitMqTopology::QUEUE_DLQ);
-        $this->assertNotNull($dlqMsg);
+        $this->assertNull($dlqMsg);
     }
 
     public function test_scenario_7_exactly_once_protection(): void

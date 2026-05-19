@@ -50,6 +50,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     'code' => 'invalid_status_transition',
                     'message' => $e->getMessage(),
                 ],
-            ], 400);
+            ], 409);
         });
     })->create();

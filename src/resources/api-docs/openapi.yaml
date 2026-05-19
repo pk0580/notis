@@ -1,0 +1,498 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  version: "1.0.0"
+  description: |
+    Микросервис уведомлений: массовая рассылка SMS/Email с приоритезацией,
+    гарантией доставки и идемпотентностью. См. `PROJECT_PLAN.md` в репозитории.
+
+    ## Допущения (из плана)
+
+    * **A1 — recipient как идентификатор подписчика.** Сервис не ведёт реестр
+      подписчиков. Идентификатор = сам контакт (`phone` для SMS, `email` для Email).
+      В `POST /api/v1/notifications` поле `recipients[]` — массив строк-контактов.
+      `GET /api/v1/notifications?recipient={contact}` принимает контакт как
+      query-параметр (PII; nginx access-log для этого пути не пишет `args`).
+    * **A2 — `Idempotency-Key` обязателен.** Сервер хранит `(key, sha256(body), response)`
+      в Redis с TTL 24h. Повтор с тем же ключом и body → закэшированный ответ;
+      повтор с тем же ключом и другим body → 409; запрос без ключа → 422.
+    * **A3 — провайдеры замоканы.** Реальных шлюзов / webhook-эндпоинтов нет;
+      переход `Sent → Delivered/Dropped` имитируется внутренним job'ом.
+    * **A4 — database queue для ack-job.** Имитация колбэка провайдера
+      (`SimulateDeliveryAckJob`) использует встроенный retry Laravel database-queue,
+      что устраняет необходимость reconciliation-команды для «висящих» `sent`.
+    * **A5 — лимит `body` зависит от канала.** SMS — 1..1000 символов (≈6 GSM /
+      14 Unicode-сегментов; ограничение задано, чтобы клиент не отправил по ошибке
+      многосегментный SMS, не зная про segment-биллинг). Email — 1..10000 символов.
+      Лимиты в `config/notifications.php` (`body_max.sms`, `body_max.email`).
+
+    ## Поведенческие контракты
+
+    * **All-or-nothing валидация батча.** Любой невалидный элемент `recipients[]`
+      → 422 на весь запрос; никакие частичные уведомления не создаются;
+      partial accept зарезервирован под v2 (нет поля `rejected` в ответе).
+    * **Семантика `attempts`** *(R10)*. Поле `attempts` в `NotificationView`
+      считает **только неудачные** попытки доставки. Успешная попытка `attempts`
+      не увеличивает. `attempts = 0` для уведомлений, отправленных с первой попытки;
+      `attempts = N` означает, что доставка завершилась успешно после N неудач.
+    * **Размер ответа на батч.** При `batch=5000` тело 202-ответа достигает ≈200 KB
+      (массив `notification_ids`). Клиент должен поддерживать чтение ответов
+      такого размера.
+    * **F3 query-параметр `recipient`.** Контакт обязателен, передаётся
+      URL-encoded. В access-логах nginx маскируется/исключается (см. A1).
+    * **`recipient_masked` в ответе F3** *(R9)*. Возвращается маскированный контакт
+      (`+7***4567`, `j***@example.com`), сырой контакт в ответе не возвращается:
+      клиент уже передал его в query-параметре.
+
+    ## Аутентификация
+
+    Не предусмотрена — сервис межсервисный, разворачивается во внутренней сети.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development (`docker compose up`)
+
+tags:
+  - name: notifications
+    description: Массовая рассылка и история по подписчику.
+
+paths:
+  /api/v1/notifications:
+    post:
+      tags: [notifications]
+      summary: Принять массовую рассылку
+      operationId: dispatchNotifications
+      description: |
+        F1: принимает массив контактов, канал, приоритет, текст; возвращает 202
+        с идентификаторами созданных уведомлений. Уведомления записываются
+        в БД атомарно с записями outbox; публикация в RabbitMQ выполняется
+        отдельным воркером `outbox:publish`.
+
+        Идемпотентность обеспечивается обязательным заголовком
+        `Idempotency-Key` — см. описание в параметре и допущение A2.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/TraceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DispatchRequest'
+            examples:
+              sms-transactional:
+                summary: Транзакционная SMS-рассылка
+                value:
+                  channel: sms
+                  priority: transactional
+                  body: "Your code is 123456"
+                  recipients:
+                    - "+79991234567"
+                    - "+79007654321"
+              email-marketing:
+                summary: Маркетинговая email-рассылка
+                value:
+                  channel: email
+                  priority: marketing
+                  body: "Hello! Check our new offers."
+                  recipients:
+                    - "user@example.com"
+      responses:
+        '202':
+          description: |
+            Уведомления приняты и сохранены в БД (`status='queued'`).
+            Публикация в брокер произойдёт асинхронно через outbox-воркер.
+
+            При `recipients.length = 5000` тело ответа достигает ≈200 KB.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/XTraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DispatchAcceptedEnvelope'
+              example:
+                data:
+                  accepted: 2
+                  notification_ids:
+                    - "01957c2e-3a8e-7c1d-b4f0-2a8e4c1d9f01"
+                    - "01957c2e-3a8e-7c1d-b4f0-2a8e4c1d9f02"
+        '409':
+          description: |
+            `Idempotency-Key` уже использовался для другого тела запроса.
+            Клиент должен сгенерировать новый ключ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                error:
+                  code: idempotency_key_conflict
+                  message: "Idempotency-Key reused with different payload"
+        '422':
+          description: |
+            Невалидное тело запроса. Возможные коды:
+            * `idempotency_key_required` — отсутствует заголовок `Idempotency-Key`
+            * `unknown_channel` — `channel` не в `{sms, email}`
+            * `invalid_recipient` — контакт не валиден для выбранного канала
+              (E.164 для SMS, RFC 5322 для email). All-or-nothing: один битый
+              элемент → отклоняется весь запрос.
+            * `invalid_message_body` — длина `body` вне допустимых границ
+              (см. A5)
+            * `empty_recipients` — `recipients` пуст
+            * `batch_too_large` — `recipients.length` превышает
+              `NOTIFICATIONS_BATCH_MAX` (по умолчанию 5000)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                missing-key:
+                  value:
+                    error:
+                      code: idempotency_key_required
+                      message: "Idempotency-Key header is required"
+                bad-recipient:
+                  value:
+                    error:
+                      code: invalid_recipient
+                      message: "Recipient '+7' is not a valid E.164 phone number"
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    get:
+      tags: [notifications]
+      summary: История и статусы уведомлений подписчика
+      operationId: listNotificationsByRecipient
+      description: |
+        F3: возвращает курсорно-пагинированный список уведомлений по конкретному
+        контакту. `recipient` обязателен, передаётся URL-encoded; access-логи
+        nginx для этого пути не содержат `args` (см. A1).
+
+        В ответе возвращается **маскированный** контакт (`recipient_masked`,
+        R9), сырой контакт обратно не отдаётся.
+      parameters:
+        - in: query
+          name: recipient
+          required: true
+          description: |
+            Контакт подписчика. Для SMS — E.164 (`+\d{7,15}`), для email —
+            RFC 5322. Канал определяется по формату.
+          schema:
+            type: string
+            maxLength: 255
+          examples:
+            sms:
+              value: "+79991234567"
+            email:
+              value: "user@example.com"
+        - in: query
+          name: cursor
+          required: false
+          description: Opaque cursor от предыдущей страницы (`meta.next_cursor`).
+          schema:
+            type: string
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - $ref: '#/components/parameters/TraceId'
+      responses:
+        '200':
+          description: Страница уведомлений.
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/XTraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsPage'
+              example:
+                data:
+                  - id: "01957c2e-3a8e-7c1d-b4f0-2a8e4c1d9f01"
+                    channel: sms
+                    priority: transactional
+                    status: delivered
+                    recipient_masked: "+7***4567"
+                    attempts: 0
+                    last_error: null
+                    status_history:
+                      - { status: queued,    at: "2026-05-18T10:00:00Z" }
+                      - { status: sent,      at: "2026-05-18T10:00:01Z" }
+                      - { status: delivered, at: "2026-05-18T10:00:03Z" }
+                    created_at: "2026-05-18T10:00:00Z"
+                    updated_at: "2026-05-18T10:00:03Z"
+                meta:
+                  next_cursor: null
+        '422':
+          description: |
+            Невалидные query-параметры. Коды:
+            * `recipient_required` — отсутствует `recipient`
+            * `invalid_recipient` — `recipient` не распознан как E.164 или RFC 5322
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                missing:
+                  value:
+                    error:
+                      code: recipient_required
+                      message: "Query parameter 'recipient' is required"
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: |
+        Обязательный ключ идемпотентности (A2). Сервер хранит
+        `(key, sha256(body), response)` в Redis с TTL 24h:
+
+        * повтор с тем же `Idempotency-Key` и тем же `body` → закэшированный 202
+        * повтор с тем же `Idempotency-Key` и другим `body` → 409 `idempotency_key_conflict`
+        * отсутствие заголовка → 422 `idempotency_key_required`
+
+        Рекомендуется использовать UUIDv7 или UUIDv4.
+      schema:
+        type: string
+        maxLength: 64
+        minLength: 1
+      example: "0195a3f0-2c8a-7c11-9a25-9c2e4d1c01e6"
+
+    TraceId:
+      in: header
+      name: X-Trace-Id
+      required: false
+      description: |
+        Бонус (R6): корреляционный идентификатор для сквозного трейсинга.
+        Если заголовок отсутствует — сервер сгенерирует UUIDv7 и положит его
+        в `notifications.trace_id`, AMQP header `x-trace-id` и
+        `Log::withContext(['trace_id' => ...])` у потребителя.
+        Возвращается во всех ответах в `X-Trace-Id`.
+      schema:
+        type: string
+        maxLength: 64
+
+  headers:
+    XTraceId:
+      description: |
+        Корреляционный идентификатор запроса. Совпадает с заголовком
+        `X-Trace-Id` из запроса, либо сгенерирован сервером.
+      schema:
+        type: string
+
+  responses:
+    RateLimited:
+      description: |
+        Превышен лимит запросов. На `POST /api/v1/notifications` действует
+        `60 req / min`, на `GET /api/v1/notifications` — `120 req / min`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    ServerError:
+      description: Внутренняя ошибка сервиса.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+  schemas:
+    Channel:
+      type: string
+      enum: [sms, email]
+
+    Priority:
+      type: string
+      enum: [transactional, marketing]
+
+    NotificationStatus:
+      type: string
+      enum: [queued, sent, delivered, dropped]
+
+    DispatchRequest:
+      type: object
+      required: [channel, priority, body, recipients]
+      additionalProperties: false
+      properties:
+        channel:
+          $ref: '#/components/schemas/Channel'
+        priority:
+          $ref: '#/components/schemas/Priority'
+        body:
+          type: string
+          minLength: 1
+          description: |
+            Текст уведомления. Лимит зависит от канала (A5):
+            * `sms` — 1..1000 символов
+            * `email` — 1..10000 символов
+        recipients:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          description: |
+            Массив строк-контактов. Каждый элемент валидируется по `channel`:
+            E.164 для SMS, RFC 5322 для email. All-or-nothing: один битый
+            контакт → 422 на весь запрос.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+
+    DispatchAcceptedEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [accepted, notification_ids]
+          properties:
+            accepted:
+              type: integer
+              minimum: 1
+            notification_ids:
+              type: array
+              description: |
+                UUIDv7 в каноническом hex-формате; порядок соответствует
+                порядку `recipients` в запросе.
+              items:
+                type: string
+                format: uuid
+
+    StatusHistoryEntry:
+      type: object
+      required: [status, at]
+      properties:
+        status:
+          $ref: '#/components/schemas/NotificationStatus'
+        at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          description: |
+            Присутствует только для перехода в `dropped`. Возможные значения:
+            `max_retries_exceeded`, `provider_rejected: <gateway message>`,
+            `provider_rejected_late`.
+
+    NotificationView:
+      type: object
+      required:
+        - id
+        - channel
+        - priority
+        - status
+        - recipient_masked
+        - attempts
+        - last_error
+        - status_history
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        channel:
+          $ref: '#/components/schemas/Channel'
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/NotificationStatus'
+        recipient_masked:
+          type: string
+          description: |
+            Маскированный контакт (R9): `+7***4567` для phone,
+            `j***@example.com` для email. Сырой контакт в ответе не возвращается.
+          example: "+7***4567"
+        attempts:
+          type: integer
+          minimum: 0
+          description: |
+            Число **неудачных** попыток доставки (R10). Успешная попытка
+            `attempts` НЕ инкрементирует: `attempts = 0` означает «доставлено
+            с первого раза», `attempts = N` — «доставлено после N неудач».
+        last_error:
+          type: string
+          nullable: true
+          description: |
+            Сообщение последнего исключения провайдера (`$e->getMessage()`).
+            **Не** содержит причину перехода state-машины — она хранится
+            в `status_history[last].reason`.
+        status_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistoryEntry'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NotificationsPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationView'
+        meta:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+              description: Курсор для следующей страницы; `null`, если страниц больше нет.
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: |
+                Стабильный machine-readable код ошибки. Полный перечень:
+                * `idempotency_key_required` (422)
+                * `idempotency_key_conflict` (409)
+                * `invalid_recipient` (422)
+                * `invalid_message_body` (422)
+                * `empty_recipients` (422)
+                * `batch_too_large` (422)
+                * `unknown_channel` (422)
+                * `invalid_status_transition` (409)
+                * `notification_not_found` (404)
+                * `recipient_required` (422)
+              enum:
+                - idempotency_key_required
+                - idempotency_key_conflict
+                - invalid_recipient
+                - invalid_message_body
+                - empty_recipients
+                - batch_too_large
+                - unknown_channel
+                - invalid_status_transition
+                - notification_not_found
+                - recipient_required
+            message:
+              type: string
+            trace_id:
+              type: string
+              description: Совпадает с `X-Trace-Id` в заголовках ответа.

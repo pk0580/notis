@@ -30,15 +30,15 @@ final readonly class StubSmsGateway implements NotificationGateway
             return new GatewayResult(new ProviderMessageId($cachedId));
         }
 
-        $chance = random_int(1, 100);
+        // $chance = random_int(1, 100);
 
-        if ($chance <= 5) {
-            throw new GatewayRejectedException('Stub SMS Gateway: Recipient rejected');
-        }
+        // if ($chance <= 5) {
+        //     throw new GatewayRejectedException('Stub SMS Gateway: Recipient rejected');
+        // }
 
-        if ($chance <= 20) {
-            throw new GatewayUnavailableException('Stub SMS Gateway: Provider temporary unavailable');
-        }
+        // if ($chance <= 20) {
+        //     throw new GatewayUnavailableException('Stub SMS Gateway: Provider temporary unavailable');
+        // }
 
         $messageId = 'sms_'.Str::random(10);
 

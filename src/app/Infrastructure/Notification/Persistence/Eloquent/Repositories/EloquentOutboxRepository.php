@@ -26,42 +26,4 @@ final readonly class EloquentOutboxRepository implements OutboxRepository
             OutboxMessageModel::query()->insert($rows);
         }
     }
-
-    public function persist(string $notificationId, string $priority): void
-    {
-        OutboxMessageModel::query()->create([
-            'id' => (string) Str::uuid(),
-            'notification_id' => $notificationId,
-            'priority' => $priority,
-        ]);
-    }
-
-    public function findUnpublished(int $limit): array
-    {
-        return OutboxMessageModel::query()
-            ->whereNull('published_at')
-            ->orderBy('created_at')
-            ->limit($limit)
-            ->get()
-            ->map(fn (OutboxMessageModel $model) => [
-                'id' => $model->id,
-                'notification_id' => $model->notification_id,
-                'priority' => $model->priority,
-            ])
-            ->all();
-    }
-
-    public function markAsPublished(string $id): void
-    {
-        OutboxMessageModel::query()
-            ->where('id', $id)
-            ->update(['published_at' => now()]);
-    }
-
-    public function markAsFailed(string $id, string $error): void
-    {
-        OutboxMessageModel::query()
-            ->where('id', $id)
-            ->increment('attempts', 1, ['last_error' => $error]);
-    }
 }
