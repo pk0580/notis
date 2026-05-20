@@ -34,9 +34,9 @@
     },
     "scripts": {
         "post-autoload-dump": [
+            "sed -i 's/protected $currentJob;/public $currentJob;/g' vendor/vladimir-yuldashev/laravel-queue-rabbitmq/src/Consumer.php || true",
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi",
-            "sed -i 's/protected $currentJob;/public $currentJob;/g' vendor/vladimir-yuldashev/laravel-queue-rabbitmq/src/Consumer.php || true"
+            "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
