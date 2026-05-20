@@ -8,6 +8,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -91,6 +94,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     command: php artisan migrate --force
     depends_on:
       postgres:
@@ -110,6 +116,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     command: php artisan rabbitmq:consume notifications.transactional
     init: true
     deploy:
@@ -137,6 +146,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     command: php artisan rabbitmq:consume notifications.marketing
     init: true
     deploy:
@@ -164,6 +176,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     command: php artisan outbox:publish --loop
     init: true
     deploy:
@@ -187,6 +202,9 @@ services:
     env_file: ./src/.env
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/storage
+      - /var/www/html/bootstrap/cache
     command: php artisan queue:work database --queue=default --tries=3
     init: true
     deploy:

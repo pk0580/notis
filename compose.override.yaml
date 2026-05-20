@@ -1,22 +1,4 @@
 services:
   app:
-    volumes:
-      - ./src:/var/www/html
     environment:
       - PHP_IDE_CONFIG="serverName=localhost"
-
-  worker-transactional:
-    volumes:
-      - ./src:/var/www/html
-
-  worker-marketing:
-    volumes:
-      - ./src:/var/www/html
-
-  worker-outbox:
-    volumes:
-      - ./src:/var/www/html
-
-  worker-default:
-    volumes:
-      - ./src:/var/www/html

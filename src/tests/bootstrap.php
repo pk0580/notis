@@ -9,7 +9,7 @@ require __DIR__.'/../vendor/autoload.php';
 | Test environment bootstrap
 |--------------------------------------------------------------------------
 |
-| Two responsibilities:
+| Responsibilities:
 |
 | 1. Sync phpunit.xml `<env>` overrides into $_SERVER. PHPUnit only writes
 |    to $_ENV and putenv(), but Laravel's Env reads $_SERVER first — so
@@ -20,8 +20,11 @@ require __DIR__.'/../vendor/autoload.php';
 |    (1..N). For each worker we point Postgres at its own database
 |    `notifications_test_{TOKEN}`, bind Redis to its own logical DB index
 |    (TOKEN mod 16 — Redis ships with 16 numeric DBs), and route RabbitMQ
-|    to its own vhost `testing_{TOKEN}`. PG database and RabbitMQ vhost
-|    are created lazily and idempotently on first boot.
+|    to its own vhost `testing_{TOKEN}`. In single-process mode we fall
+|    back to the names set in phpunit.xml.
+|
+| 3. Idempotently create the PG database and RabbitMQ vhost the test
+|    process will use — in both single and parallel modes.
 */
 
 $testEnvKeys = [
@@ -45,24 +48,26 @@ foreach ($testEnvKeys as $key) {
 }
 
 $token = getenv('TEST_TOKEN');
+$isParallel = $token !== false && $token !== '' && $token !== '0';
 
-if ($token === false || $token === '' || $token === '0') {
-    return;
-}
+if ($isParallel) {
+    $tokenInt = (int) $token;
+    $dbName = "notifications_test_{$tokenInt}";
+    $redisDb = $tokenInt % 16;
+    $vhost = "testing_{$tokenInt}";
 
-$tokenInt = (int) $token;
-$dbName = "notifications_test_{$tokenInt}";
-$redisDb = $tokenInt % 16;
-$vhost = "testing_{$tokenInt}";
-
-foreach ([
-    'DB_DATABASE' => $dbName,
-    'REDIS_DB' => (string) $redisDb,
-    'RABBITMQ_VHOST' => $vhost,
-] as $key => $value) {
-    putenv("{$key}={$value}");
-    $_ENV[$key] = $value;
-    $_SERVER[$key] = $value;
+    foreach ([
+        'DB_DATABASE' => $dbName,
+        'REDIS_DB' => (string) $redisDb,
+        'RABBITMQ_VHOST' => $vhost,
+    ] as $key => $value) {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+} else {
+    $dbName = $_SERVER['DB_DATABASE'] ?? $_ENV['DB_DATABASE'] ?? 'notifications';
+    $vhost = $_SERVER['RABBITMQ_VHOST'] ?? $_ENV['RABBITMQ_VHOST'] ?? 'testing';
 }
 
 $pgHost = getenv('DB_HOST') ?: 'postgres';
